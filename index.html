@@ -1,3 +1,4 @@
+<!-- Revisione v4: standard completo Ricerche — navigazione Configurazione/Riepilogo/Fasi/Esito, riepilogo copiabile, ripresa intelligente, copia stabile e controllo completo -->
 <!-- Revisione v3: BBCode dei dadi con domanda/risposte + popup eliminazione ancorato al punto visualizzato -->
 <!-- Revisione Firebase: sessioni multiple, autosalvataggio, sola lettura e cancellazione definitiva protetta -->
 <div id="rc-crimini" class="foglio" style="background:#08090A !important; color:#E7E8EA !important; width:100% !important; max-width:none !important; margin:0 !important; padding:0 !important;">
@@ -278,6 +279,30 @@
 }
 
 </style>
+<style type="text/css">
+#rc-crimini .crime-flow-nav{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 20px;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+#rc-crimini .crime-flow-btn{flex:1 1 135px;min-height:42px;padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg-panel);color:var(--ink-dim);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer}
+#rc-crimini .crime-flow-btn:hover:not(:disabled){border-color:var(--gold);color:var(--ink);background:#15181b}
+#rc-crimini .crime-flow-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(215,218,221,.08)}
+#rc-crimini .crime-flow-btn:disabled{opacity:.38;cursor:not-allowed}
+#rc-crimini .crime-flow-page{display:none}
+#rc-crimini .crime-flow-page.active{display:block}
+#rc-crimini .crime-summary-card{background:var(--bg-card);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin:14px 0 18px}
+#rc-crimini .crime-summary-card h3{margin:0 0 12px;color:var(--gold);font-size:18px}
+#rc-crimini .crime-summary-card h4{margin:18px 0 8px;color:var(--ink);font-size:15px}
+#rc-crimini .crime-summary-card p,#rc-crimini .crime-summary-card li{color:var(--ink-dim);font-size:13px;line-height:1.65}
+#rc-crimini .crime-summary-card ul{margin:8px 0;padding-left:20px}
+#rc-crimini .crime-summary-copy{white-space:pre-wrap;background:#0C0E10;border:1px dashed var(--line);border-radius:8px;padding:12px 14px;color:var(--ink-dim);font-family:"Courier New",monospace;font-size:12px;line-height:1.55;max-height:260px;overflow:auto;margin:14px 0}
+#rc-crimini .crime-summary-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+#rc-crimini .crime-summary-actions .btn{min-height:40px}
+#rc-crimini .crime-difficulty{margin-top:16px;padding:13px 15px;border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:8px;background:#0C0E10;color:var(--ink-dim);font-size:13px;line-height:1.65}
+#rc-crimini .crime-difficulty b{color:var(--gold)}
+#rc-crimini .crime-phase-impact{margin-top:14px}
+#rc-crimini .crime-outcome-card{padding:18px;border:1px solid var(--line);border-radius:10px;background:#0C0E10;color:var(--ink-dim);font-size:14px;line-height:1.65}
+#rc-crimini .crime-outcome-card.ok{border-color:var(--green);color:var(--green)}
+#rc-crimini .crime-outcome-card.no{border-color:var(--blood);color:#C9A4A8}
+@media(max-width:600px){#rc-crimini .crime-flow-btn{flex:1 1 100%}}
+</style>
 <div class="wrap" id="crime-session-home">
   <div class="session-card session-home">
     <div class="session-card-head"><h2>Crimini in corso</h2></div>
@@ -286,7 +311,7 @@
       <div class="session-warning"><b>Le sessioni in corso sono personali.</b> Lascia che a modificare o concludere una sessione sia soltanto chi l'ha creata. Il tool impedisce comunque le modifiche agli altri giocatori; il Narratore può gestire tutte le sessioni.</div>
       <div id="firebase-auth-status" class="session-status">Connessione a Firebase…</div>
       <div class="session-new-row">
-        <input id="new-session-pg" type="text" maxlength="80" placeholder="Nome del PG principale (es. Coral)">
+        <input id="new-session-pg" type="text" maxlength="80" placeholder="Nome del PG principale (es. Bellatrix Lestrange)">
         <button class="btn" id="btn-new-session" type="button" data-session-control="1">+ Nuovo Crimine</button>
         <button class="btn" id="btn-refresh-sessions" type="button" data-session-control="1">Aggiorna elenco</button>
       </div>
@@ -388,6 +413,28 @@ function dieState(id,dieSides){var e=g(id);if(!e||e.value==='')return {filled:fa
 function forumDiceBlock(domanda,risposte,dado){var out='<b>'+domanda+'</b>';if(risposte){out+='\n[quote]'+risposte+'[/quote]';}out+='\n\n'+dado;return out;}
 function thresholdAnswers(threshold,faces){threshold=Math.floor(Number(threshold));faces=Math.floor(Number(faces));if(!isFinite(threshold)||!isFinite(faces)||faces<1)return '';if(threshold<1)return '1-'+faces+'. Fallimento';if(threshold>=faces)return '1-'+faces+'. Successo';return '1-'+threshold+'. Successo\n'+(threshold+1)+'-'+faces+'. Fallimento';}
 function contrabbandoCheckAnswers(){var mezzo=g('contrabbando-mezzo'),carico=g('contrabbando-carico');var m=mezzo?mezzo.value:'',cv=carico?carico.value:'';var idx=['3','0','-3','-5'].indexOf(String(cv))+1;if(m==='passaporta'&&idx>=3)return '1. Il carico si danneggia parzialmente — anche con successo finale non si guadagnano Galeoni\n2-5. Il carico resta integro';if(m==='scopa'&&idx>=3)return '1-2. Il carico si danneggia parzialmente — anche con successo finale non si guadagnano Galeoni\n3-5. Il carico resta integro';if(m==='smater'&&idx>=2)return '1. Il carico si rompe o si disperde del tutto — la Missione fallisce\n2-5. Il carico resta integro';return '1-5. Consulta l’esito indicato dal mezzo e dal Tipo di Carico selezionati nel tool.';}
+function crimeMainPgName(){
+var title=g('current-session-title');
+if(title&&title.textContent){var s=title.textContent.split(' — ')[0].trim();if(s&&s!=='Crimine in corso')return s;}
+return 'PG 1';
+}
+function crimePgLabel(i){return Number(i)===1?crimeMainPgName():('PG '+i);}
+function naturalCrimeThresholdQuestion(ctx){
+ctx=String(ctx||'').trim();
+var pm=ctx.match(/,\s*PG\s*(\d+)\s*$/i),pg=pm?crimePgLabel(parseInt(pm[1],10)):'il PG';
+if(pm)ctx=ctx.slice(0,pm.index).trim();
+ctx=ctx.replace(/,\s*Fase\s+I\s+primo tentativo/i,' — Fase I, primo tentativo')
+       .replace(/,\s*Fase\s+I\s+secondo tentativo/i,' — Fase I, secondo tentativo')
+       .replace(/,\s*Fase\s+II\s+Recupero/i,' — Fase II, Recupero')
+       .replace(/,\s*Fase\s+III\s+Fuga/i,' — Fase III, Fuga')
+       .replace(/,\s*Fase\s+([IVX]+)\s*/i,' — Fase $1, ')
+       .replace(/,\s*Fase\s+([IVX]+)$/i,' — Fase $1')
+       .replace(/,\s*/g,' — ')
+       .replace(/—\s*$/,'')
+       .replace(/\s+/g,' ')
+       .trim();
+return pg+' supera la prova «'+ctx+'»?';
+}
 function crimeForumCopy(raw){raw=String(raw||'');var m=raw.match(/^\[dice=1d(\d+)\]([\s\S]*?)\[\/dice\]$/i);if(!m)return raw;var faces=parseInt(m[1],10),label=m[2],domanda='',risposte='';
 if(label==='Determinazione del Crimine'){domanda='Quale Crimine viene commissionato?';risposte='1. Furto\n2. Contrabbando\n3. Pressione Psicologica\n4. Sicario\n5. Affari Clandestini';}
 else if(label==='Determinazione del Bottino — Furto'){domanda='Quale Bottino devi sottrarre?';risposte='1. Bottino Minore (+3)\n2. Bottino Notevole (0)\n3. Bottino Elevato (-4)';}
@@ -397,9 +444,11 @@ else if(label==='Profilo della Vittima — Pressione Psicologica'){domanda='Qual
 else if(label==='Profilo del Bersaglio — Sicario'){domanda='Qual è il Profilo del Bersaglio?';risposte='1. Isolato/Poco noto (+3)\n2. Conosciuto (0)\n3. Ricco/Frequentato (-3)\n4. Celebre/Protetto (-5)';}
 else if(label==='Tipo di Incarico — Sicario'){domanda='Qual è il Tipo di Incarico?';risposte='1. Eliminazione totale\n2. Punizione o vendetta\n3. Rimozione/manipolazione mnemonica\n4. Inscenamento\n5. Missione alternativa o simbolica';}
 else if(label==='Tipologia di Evento — Affari Clandestini'){domanda='Quale Tipologia di Evento devi organizzare?';risposte='1. Duello/scontro/torneo/gara non autorizzati\n2. Festa o spettacolo illegale\n3. Asta di oggetti oscuri/illegali\n4. Raduno magico\n5. Evento di copertura';}
-else {var tm=label.match(/^Riesce se 1-(\d+) \(([\s\S]*?)\) — ([\s\S]+)$/i);if(tm){domanda=tm[3]+': riesce?';risposte=thresholdAnswers(parseInt(tm[1],10),faces);}else{domanda=label+': qual è il risultato?';risposte='1-'+faces+'. Inserisci il risultato nel tool per applicare l’esito previsto.';}}
+else {var tm=label.match(/^Riesce se 1-(\d+) \(([\s\S]*?)\) — ([\s\S]+)$/i);if(tm){domanda=naturalCrimeThresholdQuestion(tm[3]);risposte=thresholdAnswers(parseInt(tm[1],10),faces);}else{domanda='Qual è il risultato del tiro «'+label+'»?';risposte='1-'+faces+'. Inserisci il risultato nel tool per applicare l’esito previsto.';}}
 return forumDiceBlock(domanda,risposte,raw);}
-function doCopy(btn){var text=crimeForumCopy(btn.getAttribute('data-dice')||'');var fb=btn.parentElement.querySelector('.dice-copied');function flash(){if(fb){fb.classList.add('show');setTimeout(function(){fb.classList.remove('show');},1400);}}function fallback(){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(flash).catch(function(){fallback();flash();});}else{fallback();flash();}}
+function restoreCrimeScroll(x,y){try{window.scrollTo(x,y);}catch(e){}try{requestAnimationFrame(function(){window.scrollTo(x,y);});}catch(e){}setTimeout(function(){try{window.scrollTo(x,y);}catch(e){}},0);}
+function safeCrimeCopyText(text,done){var sx=window.scrollX||window.pageXOffset||0,sy=window.scrollY||window.pageYOffset||0;function fallback(){var ta=document.createElement('textarea');ta.value=text;ta.setAttribute('readonly','readonly');ta.style.position='fixed';ta.style.top='0';ta.style.left='0';ta.style.width='1px';ta.style.height='1px';ta.style.opacity='0';ta.style.pointerEvents='none';ta.style.zIndex='-1';document.body.appendChild(ta);try{ta.select();ta.setSelectionRange(0,ta.value.length);document.execCommand('copy');}catch(e){}if(ta.parentNode)ta.parentNode.removeChild(ta);restoreCrimeScroll(sx,sy);if(done)done();}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){restoreCrimeScroll(sx,sy);if(done)done();}).catch(fallback);}else fallback();}
+function doCopy(btn){var sx=window.scrollX||window.pageXOffset||0,sy=window.scrollY||window.pageYOffset||0;var text=crimeForumCopy(btn.getAttribute('data-dice')||'');var fb=btn.parentElement?btn.parentElement.querySelector('.dice-copied'):null;function flash(){if(fb){fb.classList.add('show');setTimeout(function(){fb.classList.remove('show');},1400);}restoreCrimeScroll(sx,sy);}safeCrimeCopyText(text,flash);restoreCrimeScroll(sx,sy);}
 function updateTag(resId,tagId,threshold,dieSides){var t=g(tagId);if(!t)return;var s=dieState(resId,dieSides);if(!s.filled){t.textContent='In attesa del tiro';t.className='tag';return;}if(!s.valid){t.textContent='Risultato impossibile: inserisci un intero da 1 a '+dieSides;t.className='tag invalid';return;}var th=effectiveThreshold(threshold,dieSides);if(s.value<=th){t.textContent='Successo ('+s.value+' ≤ '+th+')';t.className='tag ok';}else{t.textContent='Fallito ('+s.value+' > '+th+')';t.className='tag no';}}
 function setFormulaPreview(fId,dieSides,threshold,formulaText){var th=effectiveThreshold(threshold,dieSides);var head=th<1?'1d'+dieSides+' — nessun risultato valido può riuscire':'1d'+dieSides+' — riesce se il risultato è tra 1 e '+th;setTxt(fId,'<b>'+head+'</b><br>'+threshold+' = '+formulaText);}
 function setDiceButtonLabel(btnId,dieSides,threshold,i,extra){var btn=g(btnId);if(!btn)return;var th=effectiveThreshold(threshold,dieSides);btn.innerHTML='<span class="ico" aria-hidden="true"><i class="fa-solid fa-dice-d20"></i></span> Copia 1d'+dieSides+' — Riesce se 1-'+th+(extra?(' ('+extra+')'):'')+' — PG '+i;}
@@ -631,6 +680,72 @@ document.addEventListener(EVT,function(e){var t=e.target;while(t){if(t.getAttrib
 document.addEventListener('DOMContentLoaded',function(){buildShell();initCrime('furto');initCrime('contrabbando');initCrime('pressione');initCrime('sicario');initCrime('affari');});
 </script>
 
+<script type="text/javascript">
+/* ================================================================
+   STANDARD RICERCHE v4 — pagine, riepilogo, esito e ripresa semantica
+================================================================ */
+var CRIME_FLOW_PAGE={furto:'config',contrabbando:'config',pressione:'config',sicario:'config',affari:'config'};
+var CRIME_SUMMARY_SEEN={furto:false,contrabbando:false,pressione:false,sicario:false,affari:false};
+var CRIME_FLOW_BUSY=false;
+var CRIME_STATS={
+ furto:[['destrezza','Destrezza'],['sapOscura','Sapienza Oscura'],['fatica','Fatica']],
+ contrabbando:[['acume','Acume'],['sapOscura','Sapienza Oscura'],['sapMentale','Sapienza Mentale'],['fatica','Fatica'],['destrezza','Destrezza']],
+ pressione:[['volonta','Volontà'],['sapOscura','Sapienza Oscura'],['sapMentale','Sapienza Mentale'],['lvPers','Lv Persuasore'],['dialettica','Dialettica'],['sinistri','Punti Sinistri'],['acume','Acume'],['resistenza','Resistenza']],
+ sicario:[['volonta','Volontà'],['dialettica','Dialettica'],['lvPers','Lv Persuasore'],['sapMentale','Sapienza Mentale'],['destrezza','Destrezza'],['popolarita','Popolarità'],['sapArcaica','Sapienza Arcaica'],['sinistri','Punti Sinistri'],['acume','Acume'],['sapOscura','Sapienza Oscura']],
+ affari:[['volonta','Volontà'],['dialettica','Dialettica'],['lvPers','Lv Persuasore'],['sapMentale','Sapienza Mentale'],['sinistri','Punti Sinistri'],['sapOscura','Sapienza Oscura'],['acume','Acume'],['sapArcaica','Sapienza Arcaica'],['popolarita','Popolarità']]
+};
+function crimeEsc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function crimeSelectedText(id){var e=g(id);if(!e||!e.value)return '';var t=e.options&&e.selectedIndex>=0?e.options[e.selectedIndex].textContent:e.value;return String(t||'').replace(/^\s*\d+\s*[—-]\s*/,'').trim();}
+function crimePrimaryName(){return crimeMainPgName();}
+function crimeParticipantName(i){return Number(i)===1?crimePrimaryName():('PG '+i);}
+function crimeControlVisible(e){if(!e)return false;if(e.type==='hidden')return false;var n=e;while(n&&n!==document.body){var cs=window.getComputedStyle?getComputedStyle(n):null;if((cs&&cs.display==='none')||(cs&&cs.visibility==='hidden'))return false;n=n.parentElement;}return true;}
+function crimeControlRequired(e){if(!e||e.disabled||!crimeControlVisible(e))return false;var id=e.id||'';if(/-pt$/.test(id)){var p=g(id.replace(/-pt$/,'-p'));return !!(p&&String(p.value)!=='0'&&String(p.value)!=='');}if(e.tagName==='SELECT')return true;if(e.tagName==='INPUT'&&(e.type==='number'||e.type==='text'))return true;return false;}
+function crimeControlIncomplete(e){if(!crimeControlRequired(e))return false;if(e.tagName==='SELECT')return String(e.value||'')==='';if(e.tagName==='INPUT'){if(String(e.value||'')==='')return true;if(e.type==='number'){var v=Number(e.value);if(!isFinite(v))return true;if(e.min!==''&&v<Number(e.min))return true;if(e.max!==''&&v>Number(e.max))return true;if(e.step==='1'&&Math.floor(v)!==v)return true;}}return false;}
+function firstIncompleteIn(node){if(!node)return null;var els=node.querySelectorAll('input[id],select[id]');for(var i=0;i<els.length;i++)if(crimeControlIncomplete(els[i]))return els[i];return null;}
+function crimeConfigReady(crime){var p=g('crime-flow-'+crime+'-config');return !!(ASSIGNED_CRIME===crime&&p&&!firstIncompleteIn(p));}
+function crimePhaseHasActivity(crime){var sec=g('section-'+crime);if(!sec)return false;var els=sec.querySelectorAll('input[id*="-fase"][id*="-res"]');for(var i=0;i<els.length;i++)if(String(els[i].value||'')!=='')return true;return false;}
+function crimePhaseCardUnlocked(crime,phase){var id=crime+'-'+phase+'-card',c=g(id);return !!(c&&!c.classList.contains('locked'));}
+function crimeOutcomeBoxState(id){var b=g(id);if(!b)return null;if(b.classList.contains('ok'))return {done:true,success:true,text:b.textContent};if(b.classList.contains('no'))return {done:true,success:false,text:b.textContent};return null;}
+function crimeTerminalState(crime){var s=null;
+ if(crime==='furto'){
+  var a=crimeOutcomeBoxState('furto-faseI1-esito'),b=crimeOutcomeBoxState('furto-faseI2-esito'),c=crimeOutcomeBoxState('furto-faseII-esito'),d=crimeOutcomeBoxState('furto-faseIII-esito');
+  if(a&&a.success===false&&b&&b.success===false)return {done:true,success:false,text:'La Fase I non è stata superata neppure al secondo tentativo.'};
+  if(c&&c.success===false)return {done:true,success:false,text:c.text};
+  if(d)return {done:true,success:d.success,text:d.text};
+ }else if(crime==='contrabbando'){
+  var c1=crimeOutcomeBoxState('contrabbando-faseI-esito'),c2=crimeOutcomeBoxState('contrabbando-faseII-esito'),c3=crimeOutcomeBoxState('contrabbando-faseIII-esito');
+  if(c1&&c1.success===false)return {done:true,success:false,text:c1.text};
+  if(c2&&c2.success===false&&/fallita|distrutto|disperso/i.test(c2.text))return {done:true,success:false,text:c2.text};
+  if(c3)return {done:true,success:c3.success,text:c3.text};
+ }else{
+  s=crimeOutcomeBoxState(crime+'-faseIII-esito');if(s)return {done:true,success:s.success,text:s.text};
+ }
+ return {done:false,success:false,text:''};
+}
+function crimeFlowAllowed(crime,page){if(page==='config')return true;var ready=crimeConfigReady(crime);if(page==='summary')return ready;var activity=crimePhaseHasActivity(crime);if(page==='faseI')return ready&&(CRIME_SUMMARY_SEEN[crime]||activity);if(page==='faseII')return crimePhaseCardUnlocked(crime,'faseII');if(page==='faseIII')return crimePhaseCardUnlocked(crime,'faseIII');if(page==='esito')return crimeTerminalState(crime).done;return false;}
+function crimeFlowButtonLabel(page){return {config:'Configurazione',summary:'Riepilogo',faseI:'Fase I',faseII:'Fase II',faseIII:'Fase III',esito:'Esito'}[page]||page;}
+function crimeFlowScroll(node){if(!node)return;try{node.scrollIntoView({behavior:'auto',block:'start'});}catch(e){try{window.scrollTo(0,node.getBoundingClientRect().top+(window.pageYOffset||0)-12);}catch(_){}}}
+function activateCrimeFlowPage(crime,page,scroll){if(!crimeFlowAllowed(crime,page))return false;CRIME_FLOW_PAGE[crime]=page;if(page==='summary')CRIME_SUMMARY_SEEN[crime]=true;var sec=g('section-'+crime);if(!sec)return false;var pages=sec.querySelectorAll('.crime-flow-page');for(var i=0;i<pages.length;i++)pages[i].classList.toggle('active',pages[i].getAttribute('data-flow-page')===page);var btns=sec.querySelectorAll('.crime-flow-btn');for(var j=0;j<btns.length;j++)btns[j].classList.toggle('active',btns[j].getAttribute('data-page')===page);if(page==='summary')renderCrimeSummary(crime);if(page==='esito')renderCrimeOutcome(crime);syncCrimeFlow(crime);var target=g('crime-flow-'+crime+'-'+page);if(scroll)crimeFlowScroll(target);return true;}
+function crimePrelimSummary(crime){var rows=[];if(crime==='furto')rows.push(['Bottino',crimeSelectedText('furto-bottino')]);else if(crime==='contrabbando')rows.push(['Tipo di Carico',crimeSelectedText('contrabbando-carico')]);else if(crime==='sicario'){rows.push(['Profilo del Bersaglio',crimeSelectedText('sicario-profilo')]);rows.push(['Tipo di Incarico',crimeSelectedText('sicario-incarico')]);}else if(crime==='affari')rows.push(['Tipologia di Evento',crimeSelectedText('affari-evento')]);return rows.filter(function(r){return !!r[1];});}
+function crimeProb(th,faces){th=Math.max(0,Math.min(faces,Math.floor(Number(th)||0)));return th/faces;}
+function crimeFurtoEstimate(){if(!crimeConfigReady('furto'))return null;var mod=Number(g('furto-bottino').value),n=PG_COUNT.furto,p1=1,p1b=1,p2fail=1,p3fail=1;for(var i=1;i<=n;i++){var d=Number(g('furto-destrezza'+i).value),s=Number(g('furto-sapOscura'+i).value),f=Number(g('furto-fatica'+i).value);var a=d+Math.floor(s/5)+mod;p1*=crimeProb(a,40);p1b*=crimeProb(a-3,40);p2fail*=1-crimeProb(d+s+mod,50);p3fail*=1-crimeProb(d+f+mod,50);}var phase1=p1+(1-p1)*p1b,phase2=1-p2fail,phase3=1-p3fail,avg=(phase1+phase2+phase3)/3;var level=avg>=.66?'Facile':(avg>=.40?'Media':'Difficile');function lab(p){return p>=.66?'situazione favorevole al gruppo':(p>=.40?'situazione equilibrata':'fase impegnativa');}return {level:level,phases:[lab(phase1),lab(phase2),lab(phase3)],reason:'Stima ottenuta sulle tre Fasi usando i Parametri attuali, il Bottino determinato, nessun supporto facoltativo e Fatica consumata iniziale pari a 0. Gli esiti reali e i bonus scelti durante la role possono modificare il quadro.'};}
+function buildCrimeSummary(crime){if(!crimeConfigReady(crime))return null;var title=CRIME_NAME[crime],n=PG_COUNT[crime],html=[],copy=[];html.push('<h3>Situazione iniziale del Crimine</h3>');copy.push('[spoiler=Situazione iniziale del Crimine]','<b>Crimine:</b> '+title,'<b>Partecipanti:</b> '+n);html.push('<p><b>Crimine:</b> '+crimeEsc(title)+'<br><b>Partecipanti:</b> '+n+'</p>');var pre=crimePrelimSummary(crime);if(pre.length){html.push('<ul>');pre.forEach(function(r){html.push('<li><b>'+crimeEsc(r[0])+':</b> '+crimeEsc(r[1])+'</li>');copy.push('<b>'+r[0]+':</b> '+r[1]);});html.push('</ul>');}
+ html.push('<h4>Parametri rilevanti</h4><ul>');copy.push('','<b>Parametri rilevanti</b>');for(var i=1;i<=n;i++){var parts=[],defs=CRIME_STATS[crime]||[];defs.forEach(function(d){var e=g(crime+'-'+d[0]+i);if(e)parts.push(d[1]+' '+e.value);});var nm=crimeParticipantName(i);html.push('<li><b>'+crimeEsc(nm)+':</b> '+crimeEsc(parts.join(' · '))+'</li>');copy.push('• '+nm+': '+parts.join(' · '));}html.push('</ul>');var est=crime==='furto'?crimeFurtoEstimate():null;if(est){html.push('<div class="crime-phase-impact"><h4>Impatto previsto sulle Fasi</h4><ul><li><b>Fase I:</b> '+crimeEsc(est.phases[0])+'</li><li><b>Fase II:</b> '+crimeEsc(est.phases[1])+'</li><li><b>Fase III:</b> '+crimeEsc(est.phases[2])+'</li></ul></div>');copy.push('','<b>Impatto previsto sulle Fasi</b>','• Fase I: '+est.phases[0],'• Fase II: '+est.phases[1],'• Fase III: '+est.phases[2]);html.push('<div class="crime-difficulty"><b>Difficoltà complessiva stimata del Crimine: '+crimeEsc(est.level)+'</b><br>'+crimeEsc(est.reason)+'</div>');copy.push('','<b>Difficoltà complessiva stimata del Crimine:</b> '+est.level,est.reason);}else{html.push('<div class="crime-difficulty"><b>Difficoltà complessiva:</b> non ancora stimabile in modo serio.<br>Per questo Crimine le formule delle Fasi dipendono da metodi o scelte che verranno effettuati durante lo svolgimento; il tool non inventa valori futuri.</div>');copy.push('','<b>Difficoltà complessiva:</b> non ancora stimabile in modo serio.','Le formule dipendono da scelte che verranno effettuate durante le Fasi; non vengono inventati valori futuri.');}copy.push('[/spoiler]');return {html:html.join(''),copy:copy.join('\n')};}
+function renderCrimeSummary(crime){var host=g('crime-summary-content-'+crime),box=g('crime-summary-copy-'+crime),data=buildCrimeSummary(crime);if(!host||!box)return;if(!data){host.innerHTML='<p>Completa prima la Configurazione.</p>';box.textContent='';return;}host.innerHTML=data.html;box.textContent=data.copy;}
+function renderCrimeOutcome(crime){var host=g('crime-outcome-content-'+crime);if(!host)return;var st=crimeTerminalState(crime);if(!st.done){host.className='crime-outcome-card';host.textContent='Il Crimine non è ancora concluso.';return;}host.className='crime-outcome-card '+(st.success?'ok':'no');host.innerHTML='<b>Esito complessivo: '+(st.success?'SUCCESSO':'FALLIMENTO')+'</b><br>'+crimeEsc(st.text);}
+function syncCrimeFlow(crime){var sec=g('section-'+crime);if(!sec||!sec.querySelector('.crime-flow-nav'))return;renderCrimeSummary(crime);renderCrimeOutcome(crime);var btns=sec.querySelectorAll('.crime-flow-btn');for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-page');btns[i].disabled=!crimeFlowAllowed(crime,p);}var cur=CRIME_FLOW_PAGE[crime]||'config';if(!crimeFlowAllowed(crime,cur)){var fallback=crimeTerminalState(crime).done?'esito':(crimeFlowAllowed(crime,'faseIII')?'faseIII':(crimeFlowAllowed(crime,'faseII')?'faseII':(crimeFlowAllowed(crime,'faseI')?'faseI':(crimeFlowAllowed(crime,'summary')?'summary':'config'))));activateCrimeFlowPage(crime,fallback,false);}else{var pages=sec.querySelectorAll('.crime-flow-page');for(var j=0;j<pages.length;j++)pages[j].classList.toggle('active',pages[j].getAttribute('data-flow-page')===cur);for(var k=0;k<btns.length;k++)btns[k].classList.toggle('active',btns[k].getAttribute('data-page')===cur);}}
+function enhanceCrimeFlow(crime,preferred){var sec=g('section-'+crime);if(!sec||sec.getAttribute('data-flow-enhanced')==='1'){if(sec)syncCrimeFlow(crime);return;}CRIME_FLOW_BUSY=true;try{var children=Array.prototype.slice.call(sec.children),firstMarker=-1;for(var i=0;i<children.length;i++){if(children[i].classList&&children[i].classList.contains('step-marker')){firstMarker=i;break;}}if(firstMarker<0)return;var nav=document.createElement('div');nav.className='crime-flow-nav';['config','summary','faseI','faseII','faseIII','esito'].forEach(function(page){var b=document.createElement('button');b.type='button';b.className='crime-flow-btn';b.textContent=crimeFlowButtonLabel(page);b.setAttribute('data-action','show-flow-page');b.setAttribute('data-crime',crime);b.setAttribute('data-page',page);nav.appendChild(b);});sec.insertBefore(nav,children[firstMarker]);var pages={};['config','summary','faseI','faseII','faseIII','esito'].forEach(function(page){var d=document.createElement('div');d.className='crime-flow-page';d.id='crime-flow-'+crime+'-'+page;d.setAttribute('data-flow-page',page);pages[page]=d;sec.appendChild(d);});var state='config';for(var j=firstMarker;j<children.length;j++){var node=children[j];if(node===nav)continue;if(node.classList&&node.classList.contains('step-marker')){var t=node.textContent||'';if(/Fase\s+I\b/i.test(t))state='faseI';if(/Fase\s+II\b/i.test(t))state='faseII';if(/Fase\s+III\b/i.test(t))state='faseIII';}pages[state].appendChild(node);}pages.summary.innerHTML='<div class="crime-summary-card"><div id="crime-summary-content-'+crime+'"></div><div class="crime-summary-copy" id="crime-summary-copy-'+crime+'"></div><div class="crime-summary-actions"><button type="button" class="btn" data-action="copy-summary" data-crime="'+crime+'">Copia riepilogo per il post</button><button type="button" class="btn" data-action="summary-to-phase1" data-crime="'+crime+'">Vai alla Fase I</button></div></div>';pages.esito.innerHTML='<div class="crime-summary-card"><h3>Esito del Crimine</h3><div id="crime-outcome-content-'+crime+'" class="crime-outcome-card">Il Crimine non è ancora concluso.</div></div>';sec.setAttribute('data-flow-enhanced','1');CRIME_FLOW_PAGE[crime]=preferred||CRIME_FLOW_PAGE[crime]||'config';syncCrimeFlow(crime);}finally{CRIME_FLOW_BUSY=false;}}
+function enhanceAllCrimeFlows(){if(CRIME_FLOW_BUSY)return;['furto','contrabbando','pressione','sicario','affari'].forEach(function(k){enhanceCrimeFlow(k,CRIME_FLOW_PAGE[k]);});}
+function firstSemanticCrimeTarget(){var crime=ASSIGNED_CRIME;if(!crime)return g('crime-roll');enhanceCrimeFlow(crime,CRIME_FLOW_PAGE[crime]);if(!crimeConfigReady(crime)){activateCrimeFlowPage(crime,'config',false);return firstIncompleteIn(g('crime-flow-'+crime+'-config'))||g('crime-flow-'+crime+'-config');}var terminal=crimeTerminalState(crime);if(terminal.done){activateCrimeFlowPage(crime,'esito',false);return g('crime-flow-'+crime+'-esito');}if(!crimePhaseHasActivity(crime)){activateCrimeFlowPage(crime,'summary',false);return g('crime-flow-'+crime+'-summary');}var order=['faseI','faseII','faseIII'];for(var i=0;i<order.length;i++){var p=order[i];if(!crimeFlowAllowed(crime,p))continue;var node=g('crime-flow-'+crime+'-'+p),miss=firstIncompleteIn(node);if(miss){activateCrimeFlowPage(crime,p,false);return miss;}if(i+1<order.length&&crimeFlowAllowed(crime,order[i+1]))continue;}var last=crimeFlowAllowed(crime,'faseIII')?'faseIII':(crimeFlowAllowed(crime,'faseII')?'faseII':'faseI');activateCrimeFlowPage(crime,last,false);return g('crime-flow-'+crime+'-'+last);}
+function latestReadonlyCrimeTarget(){var crime=ASSIGNED_CRIME;if(!crime)return g('crime-roll');enhanceCrimeFlow(crime,CRIME_FLOW_PAGE[crime]);var p=crimeTerminalState(crime).done?'esito':(crimeFlowAllowed(crime,'faseIII')?'faseIII':(crimeFlowAllowed(crime,'faseII')?'faseII':(crimePhaseHasActivity(crime)?'faseI':(crimeConfigReady(crime)?'summary':'config'))));if(p==='faseI')CRIME_SUMMARY_SEEN[crime]=true;activateCrimeFlowPage(crime,p,false);return g('crime-flow-'+crime+'-'+p);}
+function scheduleCrimeResume(readonly){setTimeout(function(){enhanceAllCrimeFlows();requestAnimationFrame(function(){var target=readonly?latestReadonlyCrimeTarget():firstSemanticCrimeTarget();if(!target)return;crimeFlowScroll(target);if(target.matches&&target.matches('input[type="text"],input[type="number"],textarea')){try{target.focus({preventScroll:true});}catch(e){}}});},120);}
+(function(){var oldRerender=rerender;rerender=function(crime){var p=CRIME_FLOW_PAGE[crime]||'config';oldRerender(crime);setTimeout(function(){enhanceCrimeFlow(crime,p);syncCrimeFlow(crime);},0);};var oldConfirm=confirmCrime;confirmCrime=function(){var before=ASSIGNED_CRIME;oldConfirm();if(ASSIGNED_CRIME&&ASSIGNED_CRIME!==before){CRIME_FLOW_PAGE[ASSIGNED_CRIME]='config';CRIME_SUMMARY_SEEN[ASSIGNED_CRIME]=false;}setTimeout(function(){enhanceAllCrimeFlows();if(ASSIGNED_CRIME)syncCrimeFlow(ASSIGNED_CRIME);},0);};})();
+document.addEventListener('click',function(e){var b=e.target.closest?e.target.closest('[data-action]'):null;if(!b)return;var a=b.getAttribute('data-action'),crime=b.getAttribute('data-crime');if(a==='show-flow-page'){e.preventDefault();activateCrimeFlowPage(crime,b.getAttribute('data-page'),true);}else if(a==='summary-to-phase1'){e.preventDefault();CRIME_SUMMARY_SEEN[crime]=true;syncCrimeFlow(crime);activateCrimeFlowPage(crime,'faseI',true);}else if(a==='copy-summary'){e.preventDefault();var data=buildCrimeSummary(crime);if(!data)return;var sx=window.scrollX||0,sy=window.scrollY||0;safeCrimeCopyText(data.copy,function(){restoreCrimeScroll(sx,sy);});restoreCrimeScroll(sx,sy);}},true);
+document.addEventListener('input',function(){setTimeout(function(){if(ASSIGNED_CRIME)syncCrimeFlow(ASSIGNED_CRIME);},0);},false);
+document.addEventListener('change',function(){setTimeout(function(){if(ASSIGNED_CRIME)syncCrimeFlow(ASSIGNED_CRIME);},0);},false);
+document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){enhanceAllCrimeFlows();var app=g('app');if(app&&window.MutationObserver){new MutationObserver(function(){if(!CRIME_FLOW_BUSY)setTimeout(enhanceAllCrimeFlows,0);}).observe(app,{childList:true,subtree:false});}},0);});
+</script>
+
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -829,7 +944,7 @@ function setWorkspaceReadOnly(ro){
       var n=controls[i];
       if(n.tagName==='BUTTON'){
         var action=n.getAttribute('data-action')||'';
-        if(action==='copy-dice'||action==='show-crime')continue;
+        if(action==='copy-dice'||action==='show-crime'||action==='show-flow-page'||action==='copy-summary'||action==='summary-to-phase1')continue;
       }
       if(SESSION_READONLY)n.disabled=true;
     }
@@ -847,7 +962,7 @@ function sessionPayload(){
     tipoCrimine:ck?crimeName(ck):'',
     crimeKey:ck,
     updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
-    toolVersion:'firebase-v3-bbcode-modal',
+    toolVersion:'standard-v4-completo',
     toolState:state
   };
 }
@@ -883,7 +998,7 @@ function attachAutosave(){
     var b=e.target.closest?e.target.closest('button'):null;
     if(!b)return;
     var action=b.getAttribute('data-action')||'';
-    if(action==='copy-dice'||action==='show-crime')return;
+    if(action==='copy-dice'||action==='show-crime'||action==='show-flow-page'||action==='copy-summary'||action==='summary-to-phase1')return;
     setTimeout(scheduleSave,0);
   },false);
 }
@@ -899,7 +1014,7 @@ function openSessionDoc(id,data){
   setWorkspaceReadOnly(SESSION_READONLY);
   updateToolbar();
   setStatus('save-status',SESSION_READONLY?'Modalità sola lettura.':'Crimine caricato · autosalvataggio attivo',SESSION_READONLY?'':'ok');
-  setTimeout(function(){window.scrollTo({top:0,behavior:'smooth'});},20);
+  if(typeof scheduleCrimeResume==='function')scheduleCrimeResume(SESSION_READONLY);else setTimeout(function(){window.scrollTo({top:0,behavior:'auto'});},20);
 }
 function loadSession(id){
   setStatus('session-home-msg','Caricamento Crimine…','');
@@ -974,7 +1089,7 @@ function createSession(){
     crimeKey:'',
     createdAt:firebase.firestore.FieldValue.serverTimestamp(),
     updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
-    toolVersion:'firebase-v3-bbcode-modal',
+    toolVersion:'standard-v4-completo',
     toolState:{assignedCrime:null,pgCount:{furto:2,contrabbando:2,pressione:2,sicario:2,affari:2},activeCrime:'',values:{}}
   };
   FB.db.collection(SESSION_COLLECTION).add(data).then(function(ref){
