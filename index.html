@@ -1,3 +1,4 @@
+<!-- Revisione v3: BBCode dei dadi con domanda/risposte + popup eliminazione ancorato al punto visualizzato -->
 <!-- Revisione Firebase: sessioni multiple, autosalvataggio, sola lettura e cancellazione definitiva protetta -->
 <div id="rc-crimini" class="foglio" style="background:#08090A !important; color:#E7E8EA !important; width:100% !important; max-width:none !important; margin:0 !important; padding:0 !important;">
 <style>
@@ -384,7 +385,21 @@ function setDice(id,t){var e=g(id);if(e)e.setAttribute('data-dice',t);}
 function signText(v,label){if(!v)return '';return ' '+(v>0?'+':'')+v+' '+label;}
 function effectiveThreshold(th,dieSides){var v=fl(th);if(v<0)v=0;if(v>dieSides)v=dieSides;return v;}
 function dieState(id,dieSides){var e=g(id);if(!e||e.value==='')return {filled:false,valid:false,value:null};var v=Number(e.value);if(!isFinite(v)||Math.floor(v)!==v||v<1||v>dieSides)return {filled:true,valid:false,value:v};return {filled:true,valid:true,value:v};}
-function doCopy(btn){var text=btn.getAttribute('data-dice')||'';var fb=btn.parentElement.querySelector('.dice-copied');function flash(){if(fb){fb.classList.add('show');setTimeout(function(){fb.classList.remove('show');},1400);}}function fallback(){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(flash).catch(function(){fallback();flash();});}else{fallback();flash();}}
+function forumDiceBlock(domanda,risposte,dado){var out='<b>'+domanda+'</b>';if(risposte){out+='\n[quote]'+risposte+'[/quote]';}out+='\n\n'+dado;return out;}
+function thresholdAnswers(threshold,faces){threshold=Math.floor(Number(threshold));faces=Math.floor(Number(faces));if(!isFinite(threshold)||!isFinite(faces)||faces<1)return '';if(threshold<1)return '1-'+faces+'. Fallimento';if(threshold>=faces)return '1-'+faces+'. Successo';return '1-'+threshold+'. Successo\n'+(threshold+1)+'-'+faces+'. Fallimento';}
+function contrabbandoCheckAnswers(){var mezzo=g('contrabbando-mezzo'),carico=g('contrabbando-carico');var m=mezzo?mezzo.value:'',cv=carico?carico.value:'';var idx=['3','0','-3','-5'].indexOf(String(cv))+1;if(m==='passaporta'&&idx>=3)return '1. Il carico si danneggia parzialmente — anche con successo finale non si guadagnano Galeoni\n2-5. Il carico resta integro';if(m==='scopa'&&idx>=3)return '1-2. Il carico si danneggia parzialmente — anche con successo finale non si guadagnano Galeoni\n3-5. Il carico resta integro';if(m==='smater'&&idx>=2)return '1. Il carico si rompe o si disperde del tutto — la Missione fallisce\n2-5. Il carico resta integro';return '1-5. Consulta l’esito indicato dal mezzo e dal Tipo di Carico selezionati nel tool.';}
+function crimeForumCopy(raw){raw=String(raw||'');var m=raw.match(/^\[dice=1d(\d+)\]([\s\S]*?)\[\/dice\]$/i);if(!m)return raw;var faces=parseInt(m[1],10),label=m[2],domanda='',risposte='';
+if(label==='Determinazione del Crimine'){domanda='Quale Crimine viene commissionato?';risposte='1. Furto\n2. Contrabbando\n3. Pressione Psicologica\n4. Sicario\n5. Affari Clandestini';}
+else if(label==='Determinazione del Bottino — Furto'){domanda='Quale Bottino devi sottrarre?';risposte='1. Bottino Minore (+3)\n2. Bottino Notevole (0)\n3. Bottino Elevato (-4)';}
+else if(label==='Determinazione del Tipo di Carico — Contrabbando'){domanda='Quale Tipo di Carico devi trasportare?';risposte='1. Comune e Discreto (+3)\n2. Sensibile ma Gestibile (0)\n3. Illegale o Instabile (-3)\n4. Altamente Proibito (-5)';}
+else if(label.indexOf('Verifica integrità del carico — Contrabbando Fase II')===0){domanda='Il carico supera integro il trasporto?';risposte=contrabbandoCheckAnswers();}
+else if(label==='Profilo della Vittima — Pressione Psicologica'){domanda='Qual è il Profilo della Vittima?';risposte='1. Avido — Corruzione +3 · Intimidazione 0 · Ricatto -3\n2. Codardo — Corruzione -3 · Intimidazione +3 · Ricatto +3\n3. Sospettoso — Corruzione 0 · Intimidazione 0 · Ricatto 0\n4. Orgoglioso — Corruzione -3 · Intimidazione -3 · Ricatto -3\n5. Pericoloso — Corruzione +3 · Intimidazione -3 · Ricatto 0\n6. Ingenuo — Corruzione +3 · Intimidazione +3 · Ricatto +3';}
+else if(label==='Profilo del Bersaglio — Sicario'){domanda='Qual è il Profilo del Bersaglio?';risposte='1. Isolato/Poco noto (+3)\n2. Conosciuto (0)\n3. Ricco/Frequentato (-3)\n4. Celebre/Protetto (-5)';}
+else if(label==='Tipo di Incarico — Sicario'){domanda='Qual è il Tipo di Incarico?';risposte='1. Eliminazione totale\n2. Punizione o vendetta\n3. Rimozione/manipolazione mnemonica\n4. Inscenamento\n5. Missione alternativa o simbolica';}
+else if(label==='Tipologia di Evento — Affari Clandestini'){domanda='Quale Tipologia di Evento devi organizzare?';risposte='1. Duello/scontro/torneo/gara non autorizzati\n2. Festa o spettacolo illegale\n3. Asta di oggetti oscuri/illegali\n4. Raduno magico\n5. Evento di copertura';}
+else {var tm=label.match(/^Riesce se 1-(\d+) \(([\s\S]*?)\) — ([\s\S]+)$/i);if(tm){domanda=tm[3]+': riesce?';risposte=thresholdAnswers(parseInt(tm[1],10),faces);}else{domanda=label+': qual è il risultato?';risposte='1-'+faces+'. Inserisci il risultato nel tool per applicare l’esito previsto.';}}
+return forumDiceBlock(domanda,risposte,raw);}
+function doCopy(btn){var text=crimeForumCopy(btn.getAttribute('data-dice')||'');var fb=btn.parentElement.querySelector('.dice-copied');function flash(){if(fb){fb.classList.add('show');setTimeout(function(){fb.classList.remove('show');},1400);}}function fallback(){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(flash).catch(function(){fallback();flash();});}else{fallback();flash();}}
 function updateTag(resId,tagId,threshold,dieSides){var t=g(tagId);if(!t)return;var s=dieState(resId,dieSides);if(!s.filled){t.textContent='In attesa del tiro';t.className='tag';return;}if(!s.valid){t.textContent='Risultato impossibile: inserisci un intero da 1 a '+dieSides;t.className='tag invalid';return;}var th=effectiveThreshold(threshold,dieSides);if(s.value<=th){t.textContent='Successo ('+s.value+' ≤ '+th+')';t.className='tag ok';}else{t.textContent='Fallito ('+s.value+' > '+th+')';t.className='tag no';}}
 function setFormulaPreview(fId,dieSides,threshold,formulaText){var th=effectiveThreshold(threshold,dieSides);var head=th<1?'1d'+dieSides+' — nessun risultato valido può riuscire':'1d'+dieSides+' — riesce se il risultato è tra 1 e '+th;setTxt(fId,'<b>'+head+'</b><br>'+threshold+' = '+formulaText);}
 function setDiceButtonLabel(btnId,dieSides,threshold,i,extra){var btn=g(btnId);if(!btn)return;var th=effectiveThreshold(threshold,dieSides);btn.innerHTML='<span class="ico" aria-hidden="true"><i class="fa-solid fa-dice-d20"></i></span> Copia 1d'+dieSides+' — Riesce se 1-'+th+(extra?(' ('+extra+')'):'')+' — PG '+i;}
@@ -832,7 +847,7 @@ function sessionPayload(){
     tipoCrimine:ck?crimeName(ck):'',
     crimeKey:ck,
     updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
-    toolVersion:'firebase-v2',
+    toolVersion:'firebase-v3-bbcode-modal',
     toolState:state
   };
 }
@@ -959,7 +974,7 @@ function createSession(){
     crimeKey:'',
     createdAt:firebase.firestore.FieldValue.serverTimestamp(),
     updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
-    toolVersion:'firebase-v2',
+    toolVersion:'firebase-v3-bbcode-modal',
     toolState:{assignedCrime:null,pgCount:{furto:2,contrabbando:2,pressione:2,sicario:2,affari:2},activeCrime:'',values:{}}
   };
   FB.db.collection(SESSION_COLLECTION).add(data).then(function(ref){
@@ -969,17 +984,32 @@ function createSession(){
     setStatus('session-home-msg','Impossibile creare il Crimine: '+err.message,'bad');
   });
 }
-function openDeleteModal(){
+function positionDeleteModalAtCurrentView(ev){
+  var m=sq('delete-session-modal');if(!m)return;
+  var box=m.querySelector('.session-modal-box');if(!box)return;
+  var anchorY=null;
+  if(ev&&Number.isFinite(ev.clientY))anchorY=ev.clientY;
+  if(anchorY===null){var trigger=sq('btn-delete-session');if(trigger){var tr=trigger.getBoundingClientRect();anchorY=tr.top+(tr.height/2);}}
+  if(anchorY===null)anchorY=Math.max(24,Math.min((window.innerHeight||600)/2,(window.innerHeight||600)-24));
+  var mh=m.getBoundingClientRect().height||window.innerHeight||document.documentElement.clientHeight||600;
+  var bh=box.offsetHeight||0;
+  var top=anchorY-(bh/2),minTop=18,maxTop=Math.max(minTop,mh-bh-18);
+  top=Math.max(minTop,Math.min(maxTop,top));
+  box.style.position='absolute';box.style.left='50%';box.style.top=Math.round(top)+'px';box.style.transform='translateX(-50%)';box.style.margin='0';
+}
+function openDeleteModal(ev){
   if(!CURRENT_SESSION||!sessionCanEdit(CURRENT_SESSION_DATA))return;
   sq('delete-session-check').checked=false;
   sq('btn-confirm-delete').disabled=true;
   sq('delete-session-msg').textContent='';
-  sq('delete-session-modal').classList.add('open');
-  sq('delete-session-modal').setAttribute('aria-hidden','false');
+  var m=sq('delete-session-modal');
+  m.classList.add('open');m.setAttribute('aria-hidden','false');
+  requestAnimationFrame(function(){positionDeleteModalAtCurrentView(ev);});
 }
 function closeDeleteModal(){
   var m=sq('delete-session-modal');if(!m)return;
   m.classList.remove('open');m.setAttribute('aria-hidden','true');
+  var box=m.querySelector('.session-modal-box');if(box){box.style.position='';box.style.left='';box.style.top='';box.style.transform='';box.style.margin='';}
 }
 function deleteCurrentSession(){
   if(!CURRENT_SESSION||!sessionCanEdit(CURRENT_SESSION_DATA)||!sq('delete-session-check').checked)return;
