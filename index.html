@@ -1,3 +1,4 @@
+<!-- Revisione Firebase: sessioni multiple, autosalvataggio, sola lettura e cancellazione definitiva protetta -->
 <div id="rc-crimini" class="foglio" style="background:#08090A !important; color:#E7E8EA !important; width:100% !important; max-width:none !important; margin:0 !important; padding:0 !important;">
 <style>
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.min.css');
@@ -87,9 +88,253 @@
 #rc-crimini nav.crime-nav button:disabled{opacity:.42;cursor:not-allowed}
 #rc-crimini footer{text-align:center;color:var(--ink-dim);font-size:12px;margin-top:60px}
 @media(max-width:600px){#rc-crimini header.hero h1{font-size:32px}}
+
+/* ================================================================
+   SESSIONI FIREBASE — Ricerca Crimini
+================================================================ */
+#rc-crimini .session-home,
+#rc-crimini .session-toolbar-card{margin:24px 0}
+#rc-crimini .session-card,
+#rc-crimini .session-toolbar-card{
+  background:var(--bg-panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+  overflow:hidden;
+}
+#rc-crimini .session-card-head{
+  padding:17px 20px;
+  border-bottom:1px solid var(--line);
+  background:#121416;
+}
+#rc-crimini .session-card-head h2{
+  margin:0;
+  color:var(--ink);
+  font-size:21px;
+}
+#rc-crimini .session-card-body{padding:20px 22px 22px}
+#rc-crimini .session-card-body>p{
+  margin-top:0;
+  color:var(--ink-dim);
+  font-size:14px;
+  line-height:1.65;
+}
+#rc-crimini .session-warning,
+#rc-crimini .readonly-banner{
+  margin:14px 0;
+  padding:12px 14px;
+  border:1px solid var(--violet-dim);
+  border-radius:8px;
+  background:#0C0E10;
+  color:var(--ink-dim);
+  font-size:13px;
+  line-height:1.6;
+}
+#rc-crimini .readonly-banner{
+  border-color:var(--gold);
+  color:var(--ink);
+}
+#rc-crimini .session-new-row,
+#rc-crimini .session-topbar,
+#rc-crimini .session-actions,
+#rc-crimini .session-item-row{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+#rc-crimini .session-new-row{margin:16px 0}
+#rc-crimini .session-new-row input{
+  flex:1 1 300px !important;
+  width:auto !important;
+  min-width:0 !important;
+  min-height:44px;
+  padding:9px 12px;
+  border:1px solid var(--line);
+  border-radius:7px;
+  background:#0C0E10;
+  color:var(--ink);
+  font-family:inherit;
+  font-size:14px;
+}
+#rc-crimini .session-topbar{
+  justify-content:space-between;
+  align-items:flex-start;
+}
+#rc-crimini .session-title{
+  color:var(--ink);
+  font-family:'magic',georgia,"Times New Roman",serif;
+  font-size:18px;
+  line-height:1.35;
+}
+#rc-crimini .session-meta,
+#rc-crimini .session-status{
+  margin-top:5px;
+  color:var(--ink-dim);
+  font-size:12px;
+  line-height:1.5;
+}
+#rc-crimini .session-status.ok{color:var(--green);font-weight:700}
+#rc-crimini .session-status.bad{color:#C88D91;font-weight:700}
+#rc-crimini .session-list{
+  display:grid;
+  gap:10px;
+  margin-top:18px;
+}
+#rc-crimini .session-item{
+  padding:14px 15px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#121416;
+}
+#rc-crimini .session-item-row{justify-content:space-between}
+#rc-crimini .session-owner{
+  display:inline-flex;
+  margin-top:7px;
+  padding:3px 8px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  color:var(--ink-dim);
+  font-size:11px;
+  font-weight:700;
+}
+#rc-crimini .session-owner.mine{
+  border-color:var(--green);
+  color:var(--green);
+}
+#rc-crimini .session-danger-btn{
+  min-height:40px;
+  padding:8px 13px;
+  border:1px solid #7E4248;
+  border-radius:7px;
+  background:#211114;
+  color:#D6A4AA;
+  font-family:inherit;
+  font-size:13px;
+  cursor:pointer;
+}
+#rc-crimini .session-danger-btn:hover{background:#2A1519}
+#rc-crimini .session-modal{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:99999;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:rgba(0,0,0,.78);
+}
+#rc-crimini .session-modal.open{display:flex}
+#rc-crimini .session-modal-box{
+  width:min(650px,100%);
+  max-height:90vh;
+  overflow:auto;
+  padding:22px;
+  border:1px solid #7E4248;
+  border-radius:12px;
+  background:#101214;
+  box-shadow:0 18px 60px rgba(0,0,0,.50);
+}
+#rc-crimini .session-modal-box h3{
+  margin:0 0 12px;
+  color:#D6A4AA;
+  font-size:22px;
+}
+#rc-crimini .session-modal-box p{
+  color:var(--ink);
+  line-height:1.65;
+  font-size:14px;
+}
+#rc-crimini .delete-confirm-line{
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  margin:18px 0;
+  padding:12px 13px;
+  border:1px solid #7E4248;
+  border-radius:8px;
+  background:#211114;
+}
+#rc-crimini .delete-confirm-line input{
+  width:auto !important;
+  margin-top:3px;
+  transform:scale(1.1);
+}
+#rc-crimini .delete-confirm-line span{
+  color:#D6A4AA;
+  font-size:13px;
+  line-height:1.55;
+}
+@media(max-width:600px){
+  #rc-crimini .session-card-body{padding:17px 15px 19px}
+  #rc-crimini .session-card-head{padding:15px}
+  #rc-crimini .session-actions,
+  #rc-crimini .session-new-row{width:100%}
+  #rc-crimini .session-actions .btn,
+  #rc-crimini .session-actions .session-danger-btn,
+  #rc-crimini .session-new-row .btn{width:100%}
+  #rc-crimini .session-item-row{align-items:stretch}
+  #rc-crimini .session-item-row>*{width:100%}
+}
+
 </style>
-<div class="wrap" id="app"></div>
-<footer>Ricerca Crimini · strumento interattivo per la gestione dei tiri</footer>
+<div class="wrap" id="crime-session-home">
+  <div class="session-card session-home">
+    <div class="session-card-head"><h2>Crimini in corso</h2></div>
+    <div class="session-card-body">
+      <p>Crea una sessione per la tua Ricerca Crimini oppure riaprine una già iniziata. Ogni Crimine viene salvato automaticamente mentre lo compili.</p>
+      <div class="session-warning"><b>Le sessioni in corso sono personali.</b> Lascia che a modificare o concludere una sessione sia soltanto chi l'ha creata. Il tool impedisce comunque le modifiche agli altri giocatori; il Narratore può gestire tutte le sessioni.</div>
+      <div id="firebase-auth-status" class="session-status">Connessione a Firebase…</div>
+      <div class="session-new-row">
+        <input id="new-session-pg" type="text" maxlength="80" placeholder="Nome del PG principale (es. Coral)">
+        <button class="btn" id="btn-new-session" type="button" data-session-control="1">+ Nuovo Crimine</button>
+        <button class="btn" id="btn-refresh-sessions" type="button" data-session-control="1">Aggiorna elenco</button>
+      </div>
+      <div id="session-home-msg" class="session-status"></div>
+      <div id="session-list" class="session-list"></div>
+    </div>
+  </div>
+</div>
+
+<div id="crime-workspace" style="display:none">
+  <div class="wrap">
+    <div class="session-toolbar-card">
+      <div class="session-card-body">
+        <div class="session-topbar">
+          <div>
+            <div id="current-session-title" class="session-title">Crimine in corso</div>
+            <div id="current-session-meta" class="session-meta"></div>
+            <div id="save-status" class="session-status"></div>
+          </div>
+          <div class="session-actions">
+            <button class="btn" id="btn-back-sessions" type="button" data-session-control="1">← Torna ai Crimini</button>
+            <button class="session-danger-btn" id="btn-delete-session" type="button" data-session-control="1">Concludi ed elimina Crimine</button>
+          </div>
+        </div>
+        <div id="readonly-banner" class="readonly-banner" style="display:none">Stai visualizzando il Crimine di un altro giocatore. Puoi consultarlo e copiare i dadi, ma non puoi modificarlo, concluderlo o cancellarlo.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap" id="app"></div>
+  <footer>Ricerca Crimini · strumento interattivo per la gestione dei tiri</footer>
+</div>
+
+<div class="session-modal" id="delete-session-modal" aria-hidden="true">
+  <div class="session-modal-box">
+    <h3>Attenzione: eliminazione definitiva</h3>
+    <p><b>Concludendo questo Crimine, tutti i dati salvati verranno cancellati definitivamente.</b></p>
+    <p><b>Il Crimine non potrà essere recuperato.</b> Se vorrai giocarlo nuovamente, dovrai ricrearlo da zero e reinserire tutti i dati, le scelte e i risultati ottenuti.</p>
+    <div class="delete-confirm-line">
+      <input type="checkbox" id="delete-session-check">
+      <span>Ho capito che il Crimine verrà cancellato definitivamente, non potrà essere recuperato e dovrà essere ricreato da zero.</span>
+    </div>
+    <div class="session-actions">
+      <button class="btn" id="btn-cancel-delete" type="button" data-session-control="1">Annulla</button>
+      <button class="session-danger-btn" id="btn-confirm-delete" type="button" data-session-control="1" disabled>Elimina definitivamente il Crimine</button>
+    </div>
+    <div id="delete-session-msg" class="session-status bad"></div>
+  </div>
+</div>
 <script type="text/javascript">
 /* ============ HELPERS ============ */
 function g(id){return document.getElementById(id);}
@@ -370,6 +615,450 @@ var EVT='cli'+'ck';
 document.addEventListener(EVT,function(e){var t=e.target;while(t){if(t.getAttribute){var action=t.getAttribute('data-action');if(action){if(action==='copy-dice'){doCopy(t);return;}if(action==='confirm-crime'){confirmCrime();return;}if(action==='show-crime'){showCrime(t.getAttribute('data-crime'));return;}if(action==='add-pg'){addPG(t.getAttribute('data-crime'));return;}if(action==='remove-pg'){removePG(t.getAttribute('data-crime'));return;}}}t=t.parentNode;}});
 document.addEventListener('DOMContentLoaded',function(){buildShell();initCrime('furto');initCrime('contrabbando');initCrime('pressione');initCrime('sicario');initCrime('affari');});
 </script>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script type="text/javascript">
+(function(){
+'use strict';
+
+/* ================================================================
+   SESSIONI FIREBASE — Ricerca Crimini
+================================================================ */
+var FIREBASE_CONFIG={
+  apiKey:"AIzaSyCvd56bSEL02s2OY2PSk7uyFX-CYRB4Vz0",
+  authDomain:"conteggi-eee1b.firebaseapp.com",
+  projectId:"conteggi-eee1b",
+  storageBucket:"conteggi-eee1b.firebasestorage.app",
+  messagingSenderId:"481320219586",
+  appId:"1:481320219586:web:87e974d618a302adfadc5b",
+  measurementId:"G-EFHVL4H1XW"
+};
+var SESSION_COLLECTION='ricerca_crimini';
+var NARRATOR_UID='TFgqfVrFLjW5SwqRFXmEi8tDhtM2';
+var FB={app:null,auth:null,db:null,user:null};
+var CURRENT_SESSION=null;
+var CURRENT_SESSION_DATA=null;
+var SESSION_READONLY=false;
+var RESTORING_SESSION=false;
+var SAVE_TIMER=null;
+var SAVE_IN_FLIGHT=false;
+var PENDING_SAVE=false;
+var EVT='cli'+'ck';
+var CRIME_KEYS=['furto','contrabbando','pressione','sicario','affari'];
+
+function sq(id){return document.getElementById(id);}
+function workspace(){return sq('crime-workspace');}
+function appRoot(){return sq('app');}
+function sessionCanEdit(data){
+  return !!(FB.user&&data&&(data.ownerUid===FB.user.uid||FB.user.uid===NARRATOR_UID));
+}
+function setStatus(id,text,kind){
+  var n=sq(id);if(!n)return;
+  n.textContent=text||'';
+  n.className='session-status'+(kind?' '+kind:'');
+}
+function formatTs(ts){
+  try{
+    var d=ts&&typeof ts.toDate==='function'?ts.toDate():null;
+    return d?d.toLocaleString('it-IT',{dateStyle:'short',timeStyle:'short'}):'';
+  }catch(e){return '';}
+}
+function escText(v){return String(v==null?'':v);}
+
+function sessionIdFromHash(){
+  var h=String(window.location.hash||'').replace(/^#/,'');
+  if(h.indexOf('session=')!==0)return '';
+  try{return decodeURIComponent(h.slice(8));}catch(e){return h.slice(8);}
+}
+function navigateToSession(id){
+  window.location.hash='session='+encodeURIComponent(id);
+  window.location.reload();
+}
+function navigateToDashboard(){
+  if(window.location.hash){
+    try{history.replaceState(null,'',window.location.pathname+window.location.search);}
+    catch(e){window.location.hash='';}
+  }
+  window.location.reload();
+}
+
+function crimeName(key){
+  return (typeof CRIME_NAME!=='undefined'&&CRIME_NAME[key])?CRIME_NAME[key]:'';
+}
+function activeCrimeKey(){
+  if(typeof ASSIGNED_CRIME!=='undefined'&&ASSIGNED_CRIME)return ASSIGNED_CRIME;
+  if(CURRENT_SESSION_DATA&&CURRENT_SESSION_DATA.crimeKey)return CURRENT_SESSION_DATA.crimeKey;
+  return '';
+}
+function sessionLabel(){
+  var pg=(CURRENT_SESSION_DATA&&(CURRENT_SESSION_DATA.pgName||CURRENT_SESSION_DATA.initialPgName))||'PG';
+  var ck=activeCrimeKey();
+  return pg+' — '+(ck?crimeName(ck):'Crimine da determinare');
+}
+function updateToolbar(){
+  if(!CURRENT_SESSION_DATA)return;
+  if(sq('current-session-title'))sq('current-session-title').textContent=sessionLabel();
+  var mine=FB.user&&CURRENT_SESSION_DATA.ownerUid===FB.user.uid;
+  var narr=FB.user&&FB.user.uid===NARRATOR_UID;
+  var meta=[mine?'Sessione creata da questo browser':(narr?'Gestione Narratore':'Sessione di un altro giocatore')];
+  var t=formatTs(CURRENT_SESSION_DATA.updatedAt);
+  if(t)meta.push('ultimo salvataggio '+t);
+  if(sq('current-session-meta'))sq('current-session-meta').textContent=meta.join(' · ');
+  if(sq('readonly-banner'))sq('readonly-banner').style.display=SESSION_READONLY?'block':'none';
+  if(sq('btn-delete-session'))sq('btn-delete-session').style.display=sessionCanEdit(CURRENT_SESSION_DATA)?'inline-block':'none';
+}
+
+function captureValues(){
+  var out={},root=appRoot();
+  if(!root)return out;
+  var els=root.querySelectorAll('input[id],select[id],textarea[id]');
+  for(var i=0;i<els.length;i++){
+    var e=els[i];
+    out[e.id]={value:e.value,checked:!!e.checked};
+  }
+  return out;
+}
+function captureToolState(){
+  var counts={};
+  if(typeof PG_COUNT!=='undefined'){
+    CRIME_KEYS.forEach(function(k){counts[k]=Number(PG_COUNT[k]||2);});
+  }
+  var active='';
+  var sec=appRoot()?appRoot().querySelector('.crime-section.active'):null;
+  if(sec&&sec.id.indexOf('section-')===0)active=sec.id.slice(8);
+  return {
+    assignedCrime:(typeof ASSIGNED_CRIME!=='undefined'&&ASSIGNED_CRIME)||null,
+    pgCount:counts,
+    activeCrime:active,
+    values:captureValues()
+  };
+}
+function restoreValues(values){
+  var root=appRoot();if(!root||!values)return;
+  Object.keys(values).forEach(function(id){
+    var e=sq(id),v=values[id];
+    if(!e||!root.contains(e))return;
+    if(v&&typeof v==='object'){
+      if('value' in e)e.value=v.value==null?'':String(v.value);
+      if('checked' in e)e.checked=!!v.checked;
+    }else if('value' in e)e.value=v==null?'':String(v);
+  });
+}
+function resetCrimeAssignment(){
+  if(typeof ASSIGNED_CRIME!=='undefined')ASSIGNED_CRIME=null;
+  var roll=sq('crime-roll'),confirm=sq('confirm-crime');
+  if(roll)roll.disabled=false;
+  if(confirm)confirm.disabled=false;
+  var btns=document.querySelectorAll('nav.crime-nav button');
+  for(var i=0;i<btns.length;i++){btns[i].disabled=true;btns[i].classList.remove('active');}
+  var secs=document.querySelectorAll('.crime-section');
+  for(var j=0;j<secs.length;j++)secs[j].classList.remove('active');
+  var box=sq('crime-assignment-status');
+  if(box){box.className='assignment-status';box.textContent='Inserisci il risultato del 1d5 e conferma: fino ad allora le schede restano bloccate.';}
+}
+function renderForCounts(counts){
+  if(typeof PG_COUNT==='undefined'||typeof RENDERERS==='undefined')return;
+  CRIME_KEYS.forEach(function(k){
+    var n=counts&&Number(counts[k]);
+    if(!isFinite(n)||Math.floor(n)!==n||n<2)n=2;
+    PG_COUNT[k]=n;
+    var c=sq('section-'+k);
+    if(c&&RENDERERS[k]){
+      c.innerHTML=RENDERERS[k].render(n);
+    }
+  });
+}
+function recomputeAll(){
+  if(typeof RENDERERS==='undefined'||typeof PG_COUNT==='undefined')return;
+  CRIME_KEYS.forEach(function(k){
+    if(RENDERERS[k]&&typeof RENDERERS[k].recompute==='function'){
+      try{RENDERERS[k].recompute(PG_COUNT[k]);}catch(e){console.error('Errore ripristino '+k,e);}
+    }
+    if(typeof applyValidation==='function'){
+      try{applyValidation(k);}catch(e){}
+    }
+  });
+}
+function restoreToolState(state){
+  RESTORING_SESSION=true;
+  try{
+    state=state||{};
+    resetCrimeAssignment();
+    renderForCounts(state.pgCount||{});
+    restoreValues(state.values||{});
+    recomputeAll();
+
+    var assigned=state.assignedCrime||'';
+    if(assigned&&CRIME_KEYS.indexOf(assigned)!==-1){
+      var reverse={furto:1,contrabbando:2,pressione:3,sicario:4,affari:5};
+      var roll=sq('crime-roll');
+      if(roll&&(!roll.value||Number(roll.value)!==reverse[assigned]))roll.value=String(reverse[assigned]);
+      if(typeof confirmCrime==='function')confirmCrime();
+      if(state.activeCrime===assigned&&typeof showCrime==='function')showCrime(assigned,true);
+    }else{
+      recomputeAll();
+    }
+  }finally{
+    RESTORING_SESSION=false;
+  }
+}
+
+function setWorkspaceReadOnly(ro){
+  SESSION_READONLY=!!ro;
+  var root=appRoot();
+  if(root){
+    var controls=root.querySelectorAll('input,select,textarea,button');
+    for(var i=0;i<controls.length;i++){
+      var n=controls[i];
+      if(n.tagName==='BUTTON'){
+        var action=n.getAttribute('data-action')||'';
+        if(action==='copy-dice'||action==='show-crime')continue;
+      }
+      if(SESSION_READONLY)n.disabled=true;
+    }
+  }
+  updateToolbar();
+}
+
+function sessionPayload(){
+  var state=captureToolState();
+  var ck=state.assignedCrime||'';
+  return {
+    ownerUid:CURRENT_SESSION_DATA.ownerUid,
+    initialPgName:CURRENT_SESSION_DATA.initialPgName||CURRENT_SESSION_DATA.pgName||'PG',
+    pgName:CURRENT_SESSION_DATA.pgName||CURRENT_SESSION_DATA.initialPgName||'PG',
+    tipoCrimine:ck?crimeName(ck):'',
+    crimeKey:ck,
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
+    toolVersion:'firebase-v2',
+    toolState:state
+  };
+}
+function scheduleSave(){
+  if(RESTORING_SESSION||SESSION_READONLY||!CURRENT_SESSION||!sessionCanEdit(CURRENT_SESSION_DATA))return;
+  setStatus('save-status','Salvataggio automatico…','');
+  if(SAVE_TIMER)clearTimeout(SAVE_TIMER);
+  SAVE_TIMER=setTimeout(saveNow,800);
+}
+function saveNow(){
+  if(RESTORING_SESSION||SESSION_READONLY||!CURRENT_SESSION||!sessionCanEdit(CURRENT_SESSION_DATA))return Promise.resolve();
+  if(SAVE_IN_FLIGHT){PENDING_SAVE=true;return Promise.resolve();}
+  SAVE_IN_FLIGHT=true;PENDING_SAVE=false;
+  var payload=sessionPayload();
+  return FB.db.collection(SESSION_COLLECTION).doc(CURRENT_SESSION).set(payload,{merge:true}).then(function(){
+    Object.keys(payload).forEach(function(k){if(k!=='updatedAt')CURRENT_SESSION_DATA[k]=payload[k];});
+    setStatus('save-status','Crimine salvato automaticamente ✓','ok');
+    updateToolbar();
+  }).catch(function(err){
+    console.error(err);
+    setStatus('save-status','Errore di salvataggio: non chiudere la pagina.','bad');
+  }).finally(function(){
+    SAVE_IN_FLIGHT=false;
+    if(PENDING_SAVE){PENDING_SAVE=false;scheduleSave();}
+  });
+}
+function attachAutosave(){
+  var root=appRoot();
+  if(!root||root.getAttribute('data-session-autosave')==='1')return;
+  root.setAttribute('data-session-autosave','1');
+  ['input','change'].forEach(function(ev){root.addEventListener(ev,function(){scheduleSave();},false);});
+  root.addEventListener(EVT,function(e){
+    var b=e.target.closest?e.target.closest('button'):null;
+    if(!b)return;
+    var action=b.getAttribute('data-action')||'';
+    if(action==='copy-dice'||action==='show-crime')return;
+    setTimeout(scheduleSave,0);
+  },false);
+}
+
+function openSessionDoc(id,data){
+  CURRENT_SESSION=id;
+  CURRENT_SESSION_DATA=data;
+  SESSION_READONLY=!sessionCanEdit(data);
+  if(sq('crime-session-home'))sq('crime-session-home').style.display='none';
+  if(workspace())workspace().style.display='block';
+
+  restoreToolState(data.toolState||{});
+  setWorkspaceReadOnly(SESSION_READONLY);
+  updateToolbar();
+  setStatus('save-status',SESSION_READONLY?'Modalità sola lettura.':'Crimine caricato · autosalvataggio attivo',SESSION_READONLY?'':'ok');
+  setTimeout(function(){window.scrollTo({top:0,behavior:'smooth'});},20);
+}
+function loadSession(id){
+  setStatus('session-home-msg','Caricamento Crimine…','');
+  return FB.db.collection(SESSION_COLLECTION).doc(id).get().then(function(doc){
+    if(!doc.exists)throw new Error('Il Crimine non esiste più.');
+    openSessionDoc(doc.id,doc.data());
+    setStatus('session-home-msg','','');
+  }).catch(function(err){
+    console.error(err);
+    setStatus('session-home-msg','Impossibile aprire il Crimine: '+err.message,'bad');
+    if(sq('crime-session-home'))sq('crime-session-home').style.display='block';
+  });
+}
+function loadSessionList(){
+  var host=sq('session-list');
+  if(!host||!FB.db||!FB.user)return;
+  host.innerHTML='<div class="session-status">Caricamento sessioni…</div>';
+  FB.db.collection(SESSION_COLLECTION).get().then(function(snap){
+    var rows=[];
+    snap.forEach(function(doc){rows.push({id:doc.id,data:doc.data()});});
+    rows.sort(function(a,b){
+      var at=a.data.updatedAt&&a.data.updatedAt.seconds?a.data.updatedAt.seconds:0;
+      var bt=b.data.updatedAt&&b.data.updatedAt.seconds?b.data.updatedAt.seconds:0;
+      return bt-at;
+    });
+    host.innerHTML='';
+    if(!rows.length){
+      host.innerHTML='<div class="session-status">Non ci sono Crimini in corso. Puoi crearne uno qui sopra.</div>';
+      return;
+    }
+    rows.forEach(function(r){
+      var d=r.data,mine=d.ownerUid===FB.user.uid,narr=FB.user.uid===NARRATOR_UID;
+      var box=document.createElement('div');box.className='session-item';
+      var row=document.createElement('div');row.className='session-item-row';
+      var left=document.createElement('div');
+      var title=document.createElement('div');title.className='session-title';
+      title.textContent=(d.pgName||d.initialPgName||'PG')+' — '+(d.tipoCrimine||'Crimine da determinare');
+      left.appendChild(title);
+      var dt=formatTs(d.updatedAt);
+      if(dt){var meta=document.createElement('div');meta.className='session-meta';meta.textContent='Aggiornato '+dt;left.appendChild(meta);}
+      var owner=document.createElement('span');owner.className='session-owner'+(mine?' mine':'');
+      owner.textContent=mine?'Tuo Crimine':(narr?'Gestibile dal Narratore':'Altro giocatore');
+      left.appendChild(owner);
+      var btn=document.createElement('button');btn.className=mine||narr?'btn':'btn';btn.type='button';btn.setAttribute('data-session-control','1');
+      btn.textContent=mine||narr?'Riprendi':'Visualizza';
+      btn.addEventListener(EVT,function(){navigateToSession(r.id);});
+      row.appendChild(left);row.appendChild(btn);box.appendChild(row);host.appendChild(box);
+    });
+  }).catch(function(err){
+    console.error(err);
+    host.innerHTML='<div class="session-status bad">Non riesco a leggere i Crimini in corso: '+escText(err.message)+'</div>';
+  });
+}
+function createSession(){
+  var inp=sq('new-session-pg');
+  var name=(inp&&inp.value?inp.value:'').trim();
+  if(!name){
+    setStatus('session-home-msg','Inserisci prima il nome del PG principale.','bad');
+    if(inp)inp.focus();
+    return;
+  }
+  if(!FB.user){
+    setStatus('session-home-msg','Firebase non è ancora pronto. Riprova tra un momento.','bad');
+    return;
+  }
+  setStatus('session-home-msg','Creazione del Crimine…','');
+  var data={
+    ownerUid:FB.user.uid,
+    initialPgName:name,
+    pgName:name,
+    tipoCrimine:'',
+    crimeKey:'',
+    createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
+    toolVersion:'firebase-v2',
+    toolState:{assignedCrime:null,pgCount:{furto:2,contrabbando:2,pressione:2,sicario:2,affari:2},activeCrime:'',values:{}}
+  };
+  FB.db.collection(SESSION_COLLECTION).add(data).then(function(ref){
+    navigateToSession(ref.id);
+  }).catch(function(err){
+    console.error(err);
+    setStatus('session-home-msg','Impossibile creare il Crimine: '+err.message,'bad');
+  });
+}
+function openDeleteModal(){
+  if(!CURRENT_SESSION||!sessionCanEdit(CURRENT_SESSION_DATA))return;
+  sq('delete-session-check').checked=false;
+  sq('btn-confirm-delete').disabled=true;
+  sq('delete-session-msg').textContent='';
+  sq('delete-session-modal').classList.add('open');
+  sq('delete-session-modal').setAttribute('aria-hidden','false');
+}
+function closeDeleteModal(){
+  var m=sq('delete-session-modal');if(!m)return;
+  m.classList.remove('open');m.setAttribute('aria-hidden','true');
+}
+function deleteCurrentSession(){
+  if(!CURRENT_SESSION||!sessionCanEdit(CURRENT_SESSION_DATA)||!sq('delete-session-check').checked)return;
+  var id=CURRENT_SESSION;
+  sq('btn-confirm-delete').disabled=true;
+  sq('delete-session-msg').textContent='Eliminazione definitiva in corso…';
+  FB.db.collection(SESSION_COLLECTION).doc(id).delete().then(function(){
+    CURRENT_SESSION=null;CURRENT_SESSION_DATA=null;
+    closeDeleteModal();
+    try{sessionStorage.setItem('rc_crimini_deleted_notice','1');}catch(e){}
+    navigateToDashboard();
+  }).catch(function(err){
+    console.error(err);
+    sq('delete-session-msg').textContent='Eliminazione non riuscita: '+err.message;
+    sq('btn-confirm-delete').disabled=false;
+  });
+}
+function backToDashboard(){
+  var done=Promise.resolve();
+  if(CURRENT_SESSION&&sessionCanEdit(CURRENT_SESSION_DATA))done=saveNow();
+  done.finally(function(){navigateToDashboard();});
+}
+function setupControls(){
+  attachAutosave();
+  sq('btn-new-session').addEventListener(EVT,createSession);
+  sq('new-session-pg').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();createSession();}});
+  sq('btn-refresh-sessions').addEventListener(EVT,loadSessionList);
+  sq('btn-back-sessions').addEventListener(EVT,backToDashboard);
+  sq('btn-delete-session').addEventListener(EVT,openDeleteModal);
+  sq('btn-cancel-delete').addEventListener(EVT,closeDeleteModal);
+  sq('delete-session-check').addEventListener('change',function(){sq('btn-confirm-delete').disabled=!sq('delete-session-check').checked;});
+  sq('btn-confirm-delete').addEventListener(EVT,deleteCurrentSession);
+  sq('delete-session-modal').addEventListener(EVT,function(e){if(e.target===sq('delete-session-modal'))closeDeleteModal();});
+  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden'&&CURRENT_SESSION&&!SESSION_READONLY)saveNow();});
+  window.addEventListener('pagehide',function(){if(CURRENT_SESSION&&!SESSION_READONLY)saveNow();});
+}
+function setupFirebase(){
+  setupControls();
+  if(workspace())workspace().style.display='none';
+  if(sq('crime-session-home'))sq('crime-session-home').style.display='block';
+  var st=sq('firebase-auth-status');
+  try{
+    if(typeof firebase==='undefined')throw new Error('SDK Firebase non caricato');
+    if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
+    FB.app=firebase.app();FB.auth=firebase.auth();FB.db=firebase.firestore();
+    FB.auth.onAuthStateChanged(function(user){
+      if(user){
+        FB.user=user;
+        if(st){
+          st.textContent=user.uid===NARRATOR_UID?'Firebase connesso · modalità Narratore':'Firebase connesso · sessione anonima attiva';
+          st.className='session-status ok';
+        }
+        var sid=sessionIdFromHash();
+        if(sid)loadSession(sid);
+        else{
+          try{
+            if(sessionStorage.getItem('rc_crimini_deleted_notice')==='1'){
+              sessionStorage.removeItem('rc_crimini_deleted_notice');
+              setStatus('session-home-msg','Crimine eliminato definitivamente. Per giocarlo di nuovo dovrà essere ricreato da zero.','ok');
+            }
+          }catch(e){}
+          loadSessionList();
+        }
+        return;
+      }
+      FB.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(function(){return FB.auth.signInAnonymously();}).catch(function(err){
+        console.error(err);
+        if(st){st.textContent='Errore autenticazione Firebase: '+err.message;st.className='session-status bad';}
+      });
+    });
+  }catch(err){
+    console.error(err);
+    if(st){st.textContent='Firebase non disponibile: '+err.message;st.className='session-status bad';}
+  }
+}
+document.addEventListener('DOMContentLoaded',setupFirebase);
+})();
+</script>
+
 <script type="text/javascript">
 (function(){
   var root=document.getElementById('rc-crimini');
