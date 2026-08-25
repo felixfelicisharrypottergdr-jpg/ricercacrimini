@@ -1,9 +1,3 @@
-<!-- Revisione v8: bonus generali e di Fase distinti, Oggetti multipli, usi, validazione numerica e riepilogo effetti; Firebase v7 preservato -->
-<!-- Revisione v7: sessioni allineate a Casi v32/Missioni v11; requisiti partecipanti confermati; readonly reversibile; salvataggi/eliminazione/creazione irrobustiti -->
-<!-- Revisione v6: quote numerici semplificati — i dadi che restituiscono direttamente il proprio valore non elencano inutilmente tutte le facce -->
-<!-- Revisione v4: standard completo Ricerche — navigazione Configurazione/Riepilogo/Fasi/Esito, riepilogo copiabile, ripresa intelligente, copia stabile e controllo completo -->
-<!-- Revisione v3: BBCode dei dadi con domanda/risposte + popup eliminazione ancorato al punto visualizzato -->
-<!-- Revisione Firebase: sessioni multiple, autosalvataggio, sola lettura e cancellazione definitiva protetta -->
 <div id="rc-crimini" class="foglio" style="background:#08090A !important; color:#E7E8EA !important; width:100% !important; max-width:none !important; margin:0 !important; padding:0 !important;">
 <style>
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.min.css');
@@ -308,8 +302,6 @@
 #rc-crimini .crime-outcome-card.ok{border-color:var(--green);color:var(--green)}
 #rc-crimini .crime-outcome-card.no{border-color:var(--blood);color:#C9A4A8}
 @media(max-width:600px){#rc-crimini .crime-flow-btn{flex:1 1 100%}}
-
-/* Revisione v5: testata globale sempre visibile anche nell'elenco sessioni */
 #rc-crimini .crime-global-hero{width:100%;margin:0 0 28px;padding:48px 22px 32px;overflow:visible;text-align:center;}
 #rc-crimini .crime-global-hero .seal{display:inline-flex !important;width:68px;height:68px;margin:0 auto 18px;}
 #rc-crimini .crime-global-hero h1{font-family:'magic',Georgia,serif !important;font-size:clamp(2.35rem,5vw,3.25rem) !important;line-height:1.08;margin:0 0 10px;text-align:center;background:none;-webkit-background-clip:initial;background-clip:initial;color:var(--ink) !important;}
@@ -317,7 +309,6 @@
 
 </style>
 <style type="text/css">
-/* ===== Revisione v8 · bonus ed input numerici ===== */
 #rc-crimini .numeric-hint{display:block;margin-top:3px;color:var(--ink-dim);font-size:10px;line-height:1.25;text-transform:none;letter-spacing:0;font-family:Arial,sans-serif;font-style:normal}
 #rc-crimini .bonus-manager{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:9px;background:#0C0E10}
 #rc-crimini .bonus-manager.general{margin-top:14px;background:#151719}
@@ -428,8 +419,10 @@ return choiceReady(base+'-pt');
 }
 function setRollDataReady(crime,phaseId,i,ready,message){
 var f=g(crime+'-'+phaseId+'-f'+i),btn=g(crime+'-'+phaseId+'-btn'+i),res=g(crime+'-'+phaseId+'-res'+i),tag=g(crime+'-'+phaseId+'-tag'+i);
+var generalReady=(typeof generalBonusReadyForPhase==='function')?generalBonusReadyForPhase(crime,phaseId,i):true;
+if(ready&&!generalReady){ready=false;message='Completa il bonus generale attivo che agisce su un Parametro usato in questa prova.';}
 if(!ready){
-if(res)res.value='';
+if(res)clearResultValue(res);
 if(f)f.innerHTML='<b>Dati mancanti o non validi</b><br>'+(message||'Completa i valori richiesti prima del tiro.');
 if(btn)btn.disabled=true;
 if(res)res.disabled=true;
@@ -489,7 +482,7 @@ return forumDiceBlock(domanda,risposte,raw);}
 function restoreCrimeScroll(x,y){try{window.scrollTo(x,y);}catch(e){}try{requestAnimationFrame(function(){window.scrollTo(x,y);});}catch(e){}setTimeout(function(){try{window.scrollTo(x,y);}catch(e){}},0);}
 function safeCrimeCopyText(text,done){var sx=window.scrollX||window.pageXOffset||0,sy=window.scrollY||window.pageYOffset||0;function fallback(){var ta=document.createElement('textarea');ta.value=text;ta.setAttribute('readonly','readonly');ta.style.position='fixed';ta.style.top='0';ta.style.left='0';ta.style.width='1px';ta.style.height='1px';ta.style.opacity='0';ta.style.pointerEvents='none';ta.style.zIndex='-1';document.body.appendChild(ta);try{ta.select();ta.setSelectionRange(0,ta.value.length);document.execCommand('copy');}catch(e){}if(ta.parentNode)ta.parentNode.removeChild(ta);restoreCrimeScroll(sx,sy);if(done)done();}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){restoreCrimeScroll(sx,sy);if(done)done();}).catch(fallback);}else fallback();}
 function doCopy(btn){var sx=window.scrollX||window.pageXOffset||0,sy=window.scrollY||window.pageYOffset||0;var text=crimeForumCopy(btn.getAttribute('data-dice')||'');var fb=btn.parentElement?btn.parentElement.querySelector('.dice-copied'):null;function flash(){if(fb){fb.classList.add('show');setTimeout(function(){fb.classList.remove('show');},1400);}restoreCrimeScroll(sx,sy);}safeCrimeCopyText(text,flash);restoreCrimeScroll(sx,sy);}
-function updateTag(resId,tagId,threshold,dieSides){var t=g(tagId);if(!t)return;var s=dieState(resId,dieSides);if(!s.filled){t.textContent='In attesa del tiro';t.className='tag';return;}if(!s.valid){t.textContent='Risultato impossibile: inserisci un intero da 1 a '+dieSides;t.className='tag invalid';return;}var th=effectiveThreshold(threshold,dieSides);if(s.value<=th){t.textContent='Successo ('+s.value+' ≤ '+th+')';t.className='tag ok';}else{t.textContent='Fallito ('+s.value+' > '+th+')';t.className='tag no';}}
+function updateTag(resId,tagId,threshold,dieSides){var t=g(tagId),r=g(resId);if(!t)return;var th=effectiveThreshold(threshold,dieSides);if(r){r.setAttribute('data-current-threshold',String(th));r.setAttribute('data-die-sides',String(dieSides));r.setAttribute('max',String(dieSides));}var s=dieState(resId,dieSides);if(!s.filled){t.textContent='In attesa del tiro';t.className='tag';return;}if(!s.valid){t.textContent='Risultato impossibile: inserisci un intero da 1 a '+dieSides;t.className='tag invalid';return;}if(r)r.setAttribute('data-last-valid',String(s.value));if(s.value<=th){t.textContent='Successo ('+s.value+' ≤ '+th+')';t.className='tag ok';}else{t.textContent='Fallito ('+s.value+' > '+th+')';t.className='tag no';}}
 function setFormulaPreview(fId,dieSides,threshold,formulaText){var th=effectiveThreshold(threshold,dieSides);var head=th<1?'1d'+dieSides+' — nessun risultato valido può riuscire':'1d'+dieSides+' — riesce se il risultato è tra 1 e '+th;setTxt(fId,'<b>'+head+'</b><br>'+threshold+' = '+formulaText);}
 function setDiceButtonLabel(btnId,dieSides,threshold,i,extra){var btn=g(btnId);if(!btn)return;var th=effectiveThreshold(threshold,dieSides);btn.innerHTML='<span class="ico" aria-hidden="true"><i class="fa-solid fa-dice-d20"></i></span> Copia 1d'+dieSides+' — Riesce se 1-'+th+(extra?(' ('+extra+')'):'')+' — PG '+i;}
 function pgStatsCardHTML(crime,n,fields){
@@ -528,7 +521,7 @@ return '<div class="support-grid"><label class="field">Pozione'+selectHTML(base+
 }
 function esitoBoxHTML(id){return '<div class="esito-box" id="'+id+'">In attesa dei risultati dei PG in questa fase.</div>';}
 function phaseLockHTML(id){return '<div class="rc-note lock-note" id="'+id+'-lock"></div>';}
-function setPhaseAccess(cardId,enabled,message){var card=g(cardId);if(!card)return;card.className=enabled?'card':'card locked';var els=card.querySelectorAll('input,select,button.dice-btn');for(var i=0;i<els.length;i++)els[i].disabled=!enabled;var note=g(cardId+'-lock');if(note){note.style.display=enabled?'none':'block';note.textContent=message||'Completa prima la fase precedente.';}}
+function setPhaseAccess(cardId,enabled,message){var card=g(cardId);if(!card)return;card.className=enabled?'card':'card locked';var els=card.querySelectorAll('input,select,button.dice-btn,button.bonus-add,button.bonus-remove');for(var i=0;i<els.length;i++)els[i].disabled=!enabled;var note=g(cardId+'-lock');if(note){note.style.display=enabled?'none':'block';note.textContent=message||'Completa prima la fase precedente.';}}
 function evalPhase(crime,phaseId,n,thresholds,rule,dieSides,forcedFail){var any=false,all=true,per=[],complete=true,valid=true;for(var i=1;i<=n;i++){if(forcedFail&&forcedFail[i-1]){per.push(false);all=false;continue;}var sides=(typeof dieSides==='object')?dieSides[i-1]:dieSides;var s=dieState(crime+'-'+phaseId+'-res'+i,sides);if(!s.filled){complete=false;per.push(null);continue;}if(!s.valid){valid=false;per.push(null);continue;}var ok=s.value<=effectiveThreshold(thresholds[i-1],sides);per.push(ok);if(ok)any=true;else all=false;}var success=(rule==='all')?all:any;return {complete:complete,valid:valid,success:success,perPG:per};}
 function computeEsito(crime,phaseId,n,thresholds,rule,dieSides,forcedFail){var st=evalPhase(crime,phaseId,n,thresholds,rule,dieSides,forcedFail);var box=g(crime+'-'+phaseId+'-esito');if(!box)return st;if(!st.complete){box.className='esito-box';box.textContent='In attesa dei risultati di tutti i PG in questa fase.';return st;}if(!st.valid){box.className='esito-box';box.textContent='Uno o più risultati non sono validi per il dado indicato.';return st;}box.className='esito-box '+(st.success?'ok':'no');var regola=(rule==='all')?'Serve che TUTTI i PG abbiano successo.':'Basta che ALMENO UN PG abbia successo.';box.textContent=(st.success?'Esito Fase: SUCCESSO — ':'Esito Fase: FALLIMENTO — ')+regola;return st;}
 function setBox(id,state,text){var e=g(id);if(!e)return;e.className='esito-box'+(state?(' '+state):'');e.textContent=text;}
@@ -556,25 +549,153 @@ function phaseBonusManagerHTML(base){return '<div class="bonus-manager" data-bon
 function bonusManager(base){var root=g('rc-crimini');return root?root.querySelector('.bonus-manager[data-bonus-base="'+base+'"]'):null;}
 function bonusRowHTML(base,data){data=data||{};var mgr=bonusManager(base),general=mgr&&mgr.getAttribute('data-bonus-scope')==='general';var uid=data.uid||('b'+(++BONUS_UID));var tg=parseTargets(mgr?mgr.getAttribute('data-targets'):'');var opts=tg.map(function(x){return '<option value="'+hEsc(x[0])+'"'+(data.target===x[0]?' selected':'')+'>'+hEsc(x[1])+'</option>';}).join('');var kind=general?'parametro':(data.kind||'soglia');var active=data.active===true;var value=data.value==null?'':data.value;var src=data.source||'',cond=data.condition||'',total=data.total==null?'':data.total,used=data.used==null?'0':data.used;var useCols=general?'':'<label>Usi totali<input data-role="total" type="number" min="0" step="1" inputmode="numeric" value="'+hEsc(total)+'"></label><label>Usi consumati<input data-role="used" type="number" min="0" step="1" inputmode="numeric" value="'+hEsc(used)+'"></label>';
 return '<div class="bonus-row '+(general?'general-row':'')+'" data-bonus-uid="'+hEsc(uid)+'" data-auto-consumed="'+(data.autoConsumed?'1':'0')+'"><label>Fonte / Oggetto / Conoscenza<input data-role="source" type="text" value="'+hEsc(src)+'" placeholder="Es. Amuleto"></label><label>Condizione<input data-role="condition" type="text" value="'+hEsc(cond)+'" placeholder="se prevista"></label>'+(general?'':'<label>Tipo<select data-role="kind"><option value="soglia"'+(kind==='soglia'?' selected':'')+'>Bonus alla soglia</option><option value="parametro"'+(kind==='parametro'?' selected':'')+'>Bonus al Parametro</option></select></label>')+'<label>Su cosa agisce<select data-role="target">'+opts+'</select></label><label>Valore<input data-role="value" data-allow-sign="1" type="number" step="1" inputmode="numeric" value="'+hEsc(value)+'"></label>'+useCols+'<label class="bonus-active"><input data-role="active" type="checkbox" '+(active?'checked':'')+'> Applica</label><button type="button" class="bonus-remove" data-action="remove-bonus">Elimina</button></div>';}
-function addBonusRow(base,data){var mgr=bonusManager(base);if(!mgr)return null;var list=mgr.querySelector('.bonus-list');if(!list)return null;var wrap=document.createElement('div');wrap.innerHTML=bonusRowHTML(base,data);var row=wrap.firstChild;list.appendChild(row);decorateNumericInputs(row);refreshBonusManager(mgr);return row;}
+function addBonusRow(base,data){var mgr=bonusManager(base);if(!mgr)return null;var list=mgr.querySelector('.bonus-list');if(!list)return null;var wrap=document.createElement('div');wrap.innerHTML=bonusRowHTML(base,data);var row=wrap.firstChild;list.appendChild(row);var src=row.querySelector('[data-role="source"]');row.setAttribute('data-source-ok',src&&String(src.value||'').trim()?'1':'0');row.setAttribute('data-mech-key',bonusMechanicalKey(row,mgr));decorateNumericInputs(row);refreshBonusManager(mgr);return row;}
 function rowData(row){function q(r){return row.querySelector('[data-role="'+r+'"]');}var active=q('active'),kind=q('kind'),target=q('target'),value=q('value'),total=q('total'),used=q('used'),source=q('source'),condition=q('condition');return {uid:row.getAttribute('data-bonus-uid')||'',active:!!(active&&active.checked),kind:kind?kind.value:'parametro',target:target?target.value:'',value:value?value.value:'',total:total?total.value:'',used:used?used.value:'',source:source?source.value:'',condition:condition?condition.value:'',autoConsumed:row.getAttribute('data-auto-consumed')==='1'};}
-function rowValidForUse(row){var d=rowData(row);if(!d.active)return false;var v=Number(d.value);if(!d.source.trim()||!isFinite(v)||Math.floor(v)!==v)return false;if(d.kind==='parametro'&&!d.target)return false;if(d.total!==''){var t=Number(d.total),u=Number(d.used||0);if(!isFinite(t)||!isFinite(u)||Math.floor(t)!==t||Math.floor(u)!==u||t<0||u<0||u>t)return false;}return true;}
-function bonusManagerReady(base){var mgr=bonusManager(base);if(!mgr)return true;var rows=mgr.querySelectorAll('.bonus-row');for(var i=0;i<rows.length;i++){var d=rowData(rows[i]);if(!d.active)continue;if(!rowValidForUse(rows[i]))return false;}return true;}
-function phaseParamBonus(base,key){var mgr=bonusManager(base);if(!mgr)return 0,sum=0,rows=mgr.querySelectorAll('.bonus-row');for(var i=0;i<rows.length;i++){var d=rowData(rows[i]);if(rowValidForUse(rows[i])&&d.kind==='parametro'&&d.target===key)sum+=Number(d.value);}return sum;}
-function phaseStat(base,key,value){return Number(value||0)+phaseParamBonus(base,key);}
-function phaseThresholdBonus(base){var mgr=bonusManager(base),sum=0;if(mgr){var rows=mgr.querySelectorAll('.bonus-row');for(var i=0;i<rows.length;i++){var d=rowData(rows[i]);if(rowValidForUse(rows[i])&&d.kind==='soglia')sum+=Number(d.value);}if(rows.length)return sum;}var legacy=g(base+'-obj');var lv=legacy?Number(legacy.value):0;return isFinite(lv)?lv:0;}
-function generalParamBonus(crime,pg,key){var mgr=bonusManager(crime+'-general-pg'+pg);if(!mgr)return 0,sum=0,rows=mgr.querySelectorAll('.bonus-row');for(var i=0;i<rows.length;i++){var d=rowData(rows[i]);if(rowValidForUse(rows[i])&&d.target===key)sum+=Number(d.value);}return sum;}
+function rowUseState(row){
+ var d=rowData(row),v=Number(d.value),inert=!d.active||d.value===''||(isFinite(v)&&Math.floor(v)===v&&v===0);
+ if(inert)return {data:d,configValid:true,usable:false,exhausted:false,value:isFinite(v)?v:0,total:null,used:Number(d.used||0)||0};
+ if(!d.source.trim()||!isFinite(v)||Math.floor(v)!==v)return {data:d,configValid:false,usable:false,exhausted:false,value:v,total:null,used:null};
+ if(d.kind==='parametro'&&!d.target)return {data:d,configValid:false,usable:false,exhausted:false,value:v,total:null,used:null};
+ var u=Number(d.used||0);
+ if(!isFinite(u)||Math.floor(u)!==u||u<0)return {data:d,configValid:false,usable:false,exhausted:false,value:v,total:null,used:u};
+ if(d.total==='')return {data:d,configValid:true,usable:true,exhausted:false,value:v,total:null,used:u};
+ var t=Number(d.total);
+ if(!isFinite(t)||Math.floor(t)!==t||t<0||u>t)return {data:d,configValid:false,usable:false,exhausted:false,value:v,total:t,used:u};
+ if(d.autoConsumed){
+  if(u<1)return {data:d,configValid:false,usable:false,exhausted:false,value:v,total:t,used:u};
+  return {data:d,configValid:true,usable:true,exhausted:false,value:v,total:t,used:u};
+ }
+ return {data:d,configValid:true,usable:u<t,exhausted:u>=t,value:v,total:t,used:u};
+}
+function bonusMechanicalKey(row,mgr){
+ if(!row||!mgr)return '';
+ var st=rowUseState(row),d=st.data||rowData(row),scope=mgr.getAttribute('data-bonus-scope'),base=mgr.getAttribute('data-bonus-base')||'';
+ if(!st.usable)return '';
+ if(scope==='general'){
+  var gm=base.match(/^(furto|contrabbando|pressione|sicario|affari)-general-pg(\d+)$/);
+  if(!gm||!generalTargetCurrentlyUsed(gm[1],Number(gm[2]),d.target))return '';
+  return 'parametro:'+String(d.target||'')+':'+String(st.value);
+ }
+ if(!phaseBaseHasResolvedProof(base))return '';
+ if(d.kind==='parametro'){
+  var keys=(mgr.getAttribute('data-formula-param-keys')||'').split(',').filter(Boolean);
+  if(keys.indexOf(d.target)<0)return '';
+ }
+ return String(d.kind||'soglia')+':'+String(d.kind==='parametro'?(d.target||''):'__threshold')+':'+String(st.value);
+}
+function rowValidForUse(row){return rowUseState(row).usable;}
+function bonusManagerReady(base){var mgr=bonusManager(base);if(!mgr)return true;var scope=mgr.getAttribute('data-bonus-scope')||'',keys=(mgr.getAttribute('data-formula-param-keys')||'').split(',').filter(Boolean),rows=mgr.querySelectorAll('.bonus-row');for(var i=0;i<rows.length;i++){var st=rowUseState(rows[i]),d=st.data||rowData(rows[i]);if(st.configValid)continue;if(scope==='phase'&&d.kind==='parametro'&&d.target&&keys.length&&keys.indexOf(d.target)<0)continue;return false;}return true;}
+function generalBonusReadyForPhase(crime,phaseId,pg){var gm=bonusManager(crime+'-general-pg'+pg);if(!gm)return true;var pm=bonusManager(crime+'-'+phaseId+'-b'+pg),keys=pm?(pm.getAttribute('data-formula-param-keys')||'').split(',').filter(Boolean):[];if(!keys.length)return true;var rows=gm.querySelectorAll('.bonus-row');for(var i=0;i<rows.length;i++){var st=rowUseState(rows[i]),d=st.data||rowData(rows[i]);if(!st.configValid&&d.active&&d.value!==''&&keys.indexOf(d.target)>=0)return false;}return true;}
+function resetFormulaUsage(crime){
+ var sec=g('section-'+crime);if(!sec)return;
+ var mgrs=sec.querySelectorAll('.bonus-manager');
+ for(var i=0;i<mgrs.length;i++){
+  mgrs[i].removeAttribute('data-formula-param-keys');
+  var rows=mgrs[i].querySelectorAll('.bonus-row');
+  for(var j=0;j<rows.length;j++)rows[j].removeAttribute('data-formula-used');
+ }
+}
+function selectedSapienzaTarget(base){
+ var m=String(base).match(/^(furto|contrabbando|pressione|sicario|affari)-(faseI1|faseI2|faseI|faseII|faseIII)-b(\d+)$/);
+ if(!m)return '';
+ var crime=m[1],phase=m[2],pg=m[3],s=null;
+ if(crime==='contrabbando'&&(phase==='faseI'||phase==='faseIII'))s=g('contrabbando-'+phase+'-sap'+pg);
+ else if(crime==='pressione'&&phase==='faseI')s=g('pressione-faseI-sap'+pg);
+ else if(crime==='sicario'&&phase==='faseI')s=g('sicario-faseI-sap'+pg);
+ else if(crime==='affari'&&phase==='faseIII')s=g('affari-faseIII-sap'+pg);
+ if(!s)return '';
+ return s.value==='mentale'?'sapMentale':(s.value==='oscura'?'sapOscura':'');
+}
+function markFormulaParam(base,key){
+ var mgr=bonusManager(base);if(!mgr)return;
+ var keys=(mgr.getAttribute('data-formula-param-keys')||'').split(',').filter(Boolean);
+ function add(k){if(k&&keys.indexOf(k)<0)keys.push(k);}
+ add(key);
+ if(key==='sapienza')add(selectedSapienzaTarget(base));
+ mgr.setAttribute('data-formula-param-keys',keys.join(','));
+}
+function phaseParamBonus(base,key){var mgr=bonusManager(base);if(!mgr)return 0;markFormulaParam(base,key);var sum=0,rows=mgr.querySelectorAll('.bonus-row');for(var i=0;i<rows.length;i++){var d=rowData(rows[i]);if(rowValidForUse(rows[i])&&d.kind==='parametro'&&d.target===key){sum+=Number(d.value);rows[i].setAttribute('data-formula-used','1');}}return sum;}
+function phaseStat(base,key,value){markFormulaParam(base,key);return Number(value||0)+phaseParamBonus(base,key);}
+function phaseThresholdBonus(base){var mgr=bonusManager(base),sum=0;if(mgr){var rows=mgr.querySelectorAll('.bonus-row');for(var i=0;i<rows.length;i++){var d=rowData(rows[i]);if(rowValidForUse(rows[i])&&d.kind==='soglia'){sum+=Number(d.value);rows[i].setAttribute('data-formula-used','1');}}if(rows.length)return sum;}var legacy=g(base+'-obj');var lv=legacy?Number(legacy.value):0;return isFinite(lv)?lv:0;}
+function generalParamBonus(crime,pg,key){var mgr=bonusManager(crime+'-general-pg'+pg);if(!mgr)return 0;var sum=0,rows=mgr.querySelectorAll('.bonus-row');for(var i=0;i<rows.length;i++){var d=rowData(rows[i]);if(rowValidForUse(rows[i])&&d.target===key)sum+=Number(d.value);}return sum;}
 function bonusTargetLabel(mgr,key){var tg=parseTargets(mgr?mgr.getAttribute('data-targets'):'');for(var i=0;i<tg.length;i++)if(tg[i][0]===key)return tg[i][1];return key;}
 function phaseNameFromBase(base){var m=String(base).match(/^(furto|contrabbando|pressione|sicario|affari)-(faseI1|faseI2|faseI|faseII|faseIII)-b(\d+)$/);if(!m)return 'GENERALE';var p={faseI1:'FASE I · 1° TENTATIVO',faseI2:'FASE I · 2° TENTATIVO',faseI:'FASE I',faseII:'FASE II',faseIII:'FASE III'};return (p[m[2]]||m[2])+' · PG '+m[3];}
-function bonusRowLabel(row,mgr){var d=rowData(row),v=Number(d.value),sign=v>=0?'+':'',target=bonusTargetLabel(mgr,d.target),scope=mgr.getAttribute('data-bonus-scope'),effect=scope==='general'?(sign+v+' '+target):(d.kind==='parametro'?(sign+v+' '+target+' (PARAMETRO)'):(sign+v+' ALLA SOGLIA'));var parts=[d.source.trim()||'EFFETTO'];if(d.condition.trim())parts.push(d.condition.trim());parts.push(effect);if(scope!=='general')parts.push(phaseNameFromBase(mgr.getAttribute('data-bonus-base')));if(d.total!==''){var t=Number(d.total),u=Number(d.used||0);parts.push(u+'/'+t+' USI → '+Math.max(0,t-u)+' RIMASTI');}return parts.join(' · ');}
-function refreshBonusManager(mgr){if(!mgr)return;var box=mgr.querySelector('.bonus-applied'),rows=mgr.querySelectorAll('.bonus-row'),lines=[];for(var i=0;i<rows.length;i++)if(rowValidForUse(rows[i]))lines.push(bonusRowLabel(rows[i],mgr));if(box)box.innerHTML=lines.map(function(x){return hEsc(x);}).join('<br>');}
-function refreshBonusSummaries(root){root=root||g('rc-crimini');if(!root)return;var ms=root.querySelectorAll('.bonus-manager');for(var i=0;i<ms.length;i++)refreshBonusManager(ms[i]);}
-function captureBonusRows(root){root=root||appRoot();var out={};if(!root)return out;var ms=root.querySelectorAll('.bonus-manager');for(var i=0;i<ms.length;i++){var base=ms[i].getAttribute('data-bonus-base'),rows=ms[i].querySelectorAll('.bonus-row');out[base]=[];for(var j=0;j<rows.length;j++)out[base].push(rowData(rows[j]));}return out;}
-function restoreBonusRows(data,root){root=root||appRoot();if(!root||!data)return;Object.keys(data).forEach(function(base){var mgr=bonusManager(base);if(!mgr||!root.contains(mgr))return;var list=mgr.querySelector('.bonus-list');if(list)list.innerHTML='';(data[base]||[]).forEach(function(d){addBonusRow(base,d);});});refreshBonusSummaries(root);}
-function migrateLegacyObjectBonuses(){var root=appRoot();if(!root)return;var olds=root.querySelectorAll('input.legacy-object-input[id$="-obj"]');for(var i=0;i<olds.length;i++){var e=olds[i],v=Number(e.value);if(!isFinite(v)||v===0)continue;var base=e.id.slice(0,-4),mgr=bonusManager(base);if(mgr&&!mgr.querySelector('.bonus-row'))addBonusRow(base,{source:'Oggetto/Borsa (sessione precedente)',condition:'Migrato automaticamente',kind:'soglia',target:'acume',value:String(v),active:true,used:'0'});e.value='0';}}
-function invalidateBonusBase(base){var m=String(base).match(/^(furto|contrabbando|pressione|sicario|affari)-(.*)$/);if(!m)return;var crime=m[1];if(/-general-pg\d+$/.test(base)){clearAllRollResults(crime);return;}var pm=base.match(/^(?:furto|contrabbando|pressione|sicario|affari)-(faseI1|faseI2|faseI|faseII|faseIII)-b\d+$/);if(pm)clearFromPhase(crime,pm[1],true);else clearAllRollResults(crime);}
-function handleBonusToggle(row,checked){var total=row.querySelector('[data-role="total"]'),used=row.querySelector('[data-role="used"]');if(!total||total.value==='')return true;var t=Number(total.value),u=Number(used.value||0);if(!isFinite(t)||t<0||Math.floor(t)!==t||!isFinite(u)||u<0||Math.floor(u)!==u)return true;if(checked){if(u>=t){var a=row.querySelector('[data-role="active"]');if(a)a.checked=false;return false;}used.value=String(u+1);row.setAttribute('data-auto-consumed','1');}else if(row.getAttribute('data-auto-consumed')==='1'&&u>0){used.value=String(u-1);row.setAttribute('data-auto-consumed','0');}return true;}
-function collectAppliedEffects(crime){var sec=g('section-'+crime),out=[];if(!sec)return out;var mgrs=sec.querySelectorAll('.bonus-manager');for(var i=0;i<mgrs.length;i++){var rows=mgrs[i].querySelectorAll('.bonus-row');for(var j=0;j<rows.length;j++)if(rowValidForUse(rows[j]))out.push(bonusRowLabel(rows[j],mgrs[i]));}var sels=sec.querySelectorAll('select[id$="-k"],select[id$="-p"]');for(var k=0;k<sels.length;k++){var s=sels[k],v=Number(s.value);if(s.disabled||!v)continue;var opt=s.options[s.selectedIndex],base=s.id.slice(0,-2),kind=/-k$/.test(s.id)?'CONOSCENZA':'POZIONE';out.push(kind+' · '+(opt?opt.text:s.value)+' · '+phaseNameFromBase(base));}return out;}
+function bonusRowLabel(row,mgr){var d=rowData(row),v=Number(d.value),sign=v>=0?'+':'',target=bonusTargetLabel(mgr,d.target),scope=mgr.getAttribute('data-bonus-scope'),effect=scope==='general'?(sign+v+' '+target):(d.kind==='parametro'?(sign+v+' '+target+' (PARAMETRO)'):(sign+v+' ALLA SOGLIA'));var parts=[d.source.trim()||'EFFETTO'];if(d.condition.trim())parts.push(d.condition.trim());parts.push(effect);if(scope!=='general')parts.push(phaseNameFromBase(mgr.getAttribute('data-bonus-base')));var u=Number(d.used||0)||0;if(d.total!==''){var t=Number(d.total);parts.push(u+'/'+t+' USI → '+Math.max(0,t-u)+' RIMASTI');}else if(u>0)parts.push(u+' US'+(u===1?'O':'I')+' CONSUMAT'+(u===1?'O':'I'));return parts.join(' · ');}
+function refreshBonusManager(mgr){if(!mgr)return;var box=mgr.querySelector('.bonus-applied'),rows=mgr.querySelectorAll('.bonus-row'),lines=[],scope=mgr.getAttribute('data-bonus-scope');for(var i=0;i<rows.length;i++){var st=rowUseState(rows[i]);if(!st.configValid)continue;if(scope==='general'&&st.usable)lines.push('ATTIVO · '+bonusRowLabel(rows[i],mgr));else if(scope!=='general'&&rows[i].getAttribute('data-auto-consumed')==='1'&&st.usable)lines.push('USATO · '+bonusRowLabel(rows[i],mgr));else if(scope!=='general'&&st.usable)lines.push('PRONTO · '+bonusRowLabel(rows[i],mgr));else if(scope!=='general'&&st.exhausted)lines.push('ESAURITO · '+bonusRowLabel(rows[i],mgr));}if(box)box.innerHTML=lines.map(function(x){return hEsc(x);}).join('<br>');}
+function refreshBonusSummaries(root){root=root||g('rc-crimini');if(!root)return;var ms=root.querySelectorAll('.bonus-manager');for(var i=0;i<ms.length;i++)refreshBonusManager(ms[i]);prepareBonusSourceMarkers(root);}
+function captureBonusRows(root){root=root||g('app');var out={};if(!root)return out;var ms=root.querySelectorAll('.bonus-manager');for(var i=0;i<ms.length;i++){var base=ms[i].getAttribute('data-bonus-base'),rows=ms[i].querySelectorAll('.bonus-row');out[base]=[];for(var j=0;j<rows.length;j++)out[base].push(rowData(rows[j]));}return out;}
+function restoreBonusRows(data,root){root=root||g('app');if(!root||!data)return;Object.keys(data).forEach(function(base){var mgr=bonusManager(base);if(!mgr||!root.contains(mgr))return;var list=mgr.querySelector('.bonus-list');if(list)list.innerHTML='';(data[base]||[]).forEach(function(d){addBonusRow(base,d);});});refreshBonusSummaries(root);}
+function migrateLegacyObjectBonuses(){var root=g('app');if(!root)return;var olds=root.querySelectorAll('input.legacy-object-input[id$="-obj"]');for(var i=0;i<olds.length;i++){var e=olds[i],v=Number(e.value);if(!isFinite(v)||v===0)continue;var base=e.id.slice(0,-4),mgr=bonusManager(base);if(mgr&&!mgr.querySelector('.bonus-row'))addBonusRow(base,{source:'Oggetto/Borsa (sessione precedente)',condition:'Migrato automaticamente',kind:'soglia',target:'acume',value:String(v),active:true,used:'0'});e.value='0';}}
+function phaseBaseFromResultId(id){var m=String(id||'').match(/^(furto|contrabbando|pressione|sicario|affari)-(faseI1|faseI2|faseI|faseII|faseIII)-res(\d+)$/);return m?(m[1]+'-'+m[2]+'-b'+m[3]):'';}
+function resultIdFromPhaseBase(base){var m=String(base||'').match(/^(furto|contrabbando|pressione|sicario|affari)-(faseI1|faseI2|faseI|faseII|faseIII)-b(\d+)$/);return m?(m[1]+'-'+m[2]+'-res'+m[3]):'';}
+function phaseCardForBase(base){var m=String(base||'').match(/^(furto|contrabbando|pressione|sicario|affari)-(faseI1|faseI2|faseI|faseII|faseIII)-b\d+$/);return m?g(m[1]+'-'+m[2]+'-card'):null;}
+function phaseBaseHasResolvedProof(base){
+ var id=resultIdFromPhaseBase(base),r=id?g(id):null;if(!r)return false;
+ var card=phaseCardForBase(base);if(card&&card.classList.contains('locked'))return false;
+ var tag=g(id.replace('-res','-tag'));if(tag&&/Fallimento automatico/i.test(tag.textContent||''))return false;
+ var sides=Number(r.getAttribute('data-die-sides')||r.getAttribute('max'));return !!(sides&&dieState(id,sides).valid);
+}
+function phaseBaseHasStoredProof(base){
+ var id=resultIdFromPhaseBase(base),r=id?g(id):null;if(!r)return false;
+ var tag=g(id.replace('-res','-tag'));if(tag&&/Fallimento automatico/i.test(tag.textContent||''))return false;
+ var sides=Number(r.getAttribute('data-die-sides')||r.getAttribute('max'));return !!(sides&&dieState(id,sides).valid);
+}
+function releaseManagerUse(base){
+ var mgr=bonusManager(base);if(!mgr)return false;var changed=false,rows=mgr.querySelectorAll('.bonus-row');
+ for(var i=0;i<rows.length;i++){var row=rows[i];if(row.getAttribute('data-auto-consumed')!=='1')continue;var u=row.querySelector('[data-role="used"]'),n=u?Number(u.value||0):0;if(u&&isFinite(n)&&Math.floor(n)===n&&n>0)u.value=String(n-1);row.setAttribute('data-auto-consumed','0');changed=true;}
+ return changed;
+}
+function consumeManagerUse(base){
+ var mgr=bonusManager(base);if(!mgr)return false;var changed=false,rows=mgr.querySelectorAll('.bonus-row');
+ for(var i=0;i<rows.length;i++){
+  var row=rows[i];if(row.getAttribute('data-formula-used')!=='1'||row.getAttribute('data-auto-consumed')==='1')continue;
+  var st=rowUseState(row);if(!st.usable)continue;
+  var u=row.querySelector('[data-role="used"]'),n=u?Number(u.value||0):0;if(!u||!isFinite(n)||Math.floor(n)!==n||n<0)continue;
+  u.value=String(n+1);row.setAttribute('data-auto-consumed','1');changed=true;
+ }
+ return changed;
+}
+function reconcileManagerUse(base){if(phaseBaseHasResolvedProof(base))return consumeManagerUse(base);return releaseManagerUse(base);}
+function reconcileAllBonusUses(crime){
+ var sec=g('section-'+crime);if(!sec)return;var mgrs=sec.querySelectorAll('.bonus-manager[data-bonus-scope="phase"]');
+ for(var i=0;i<mgrs.length;i++)reconcileManagerUse(mgrs[i].getAttribute('data-bonus-base'));
+ refreshBonusSummaries(sec);
+}
+function releaseResultUse(resOrId){var id=typeof resOrId==='string'?resOrId:(resOrId&&resOrId.id)||'',base=phaseBaseFromResultId(id);if(base)releaseManagerUse(base);}
+function clearResultValue(res){if(!res)return;releaseResultUse(res);res.value='';res.removeAttribute('data-last-valid');}
+function mechTargetFromKey(key){var p=String(key||'').split(':');return p.length>=3&&p[0]==='parametro'?p[1]:'';}
+function phasesUsingStats(crime,pg,targets){
+ var wanted=[];(targets||[]).forEach(function(k){if(k&&wanted.indexOf(k)<0)wanted.push(k);});
+ if(!wanted.length)return [];
+ var order=PHASE_ORDER[crime]||[],out=[];
+ for(var i=0;i<order.length;i++){
+  var mgr=bonusManager(crime+'-'+order[i]+'-b'+pg);if(!mgr)continue;
+  var keys=(mgr.getAttribute('data-formula-param-keys')||'').split(',').filter(Boolean),hit=false;
+  for(var j=0;j<wanted.length;j++)if(keys.indexOf(wanted[j])>=0){hit=true;break;}
+  if(hit)out.push(order[i]);
+ }
+ return out;
+}
+function invalidatePgStatTargets(crime,pg,targets){
+ var phases=phasesUsingStats(crime,pg,targets);
+ for(var i=0;i<phases.length;i++){
+  clearSinglePhaseResult(crime,phases[i],pg);
+  invalidateDownstreamForUnknownOutcome(crime,phases[i],pg);
+ }
+}
+function invalidateBonusBase(base,beforeKey,afterKey){var m=String(base).match(/^(furto|contrabbando|pressione|sicario|affari)-(.*)$/);if(!m)return;var crime=m[1],gm=base.match(/-general-pg(\d+)$/);if(gm){var pg=Number(gm[1]),targets=[];[mechTargetFromKey(beforeKey),mechTargetFromKey(afterKey)].forEach(function(k){if(k&&targets.indexOf(k)<0)targets.push(k);});invalidatePgStatTargets(crime,pg,targets);return;}var pm=base.match(/^(?:furto|contrabbando|pressione|sicario|affari)-(faseI1|faseI2|faseI|faseII|faseIII)-b(\d+)$/);if(pm){invalidatePhaseControlForPg(crime,pm[1],Number(pm[2]));}else clearAllRollResults(crime);}
+function handleBonusToggle(row,checked){return true;}
+function generalTargetCurrentlyUsed(crime,pg,target){var sec=g('section-'+crime);if(!sec||!target)return false;var mgrs=sec.querySelectorAll('.bonus-manager[data-bonus-scope="phase"][data-bonus-base$="-b'+pg+'"]');for(var i=0;i<mgrs.length;i++){var base=mgrs[i].getAttribute('data-bonus-base');if(!phaseBaseHasStoredProof(base))continue;var keys=(mgrs[i].getAttribute('data-formula-param-keys')||'').split(',');if(keys.indexOf(target)>=0)return true;}return false;}
+function generalRowActuallyUsed(crime,pg,row){var d=rowData(row);return rowValidForUse(row)&&generalTargetCurrentlyUsed(crime,pg,d.target);}
+function bonusRowUsedInResolvedProof(row,mgr){
+ if(!row||!mgr)return false;
+ var scope=mgr.getAttribute('data-bonus-scope'),base=mgr.getAttribute('data-bonus-base')||'';
+ if(scope==='phase')return row.getAttribute('data-auto-consumed')==='1';
+ var gm=base.match(/^(furto|contrabbando|pressione|sicario|affari)-general-pg(\d+)$/);
+ return !!(gm&&generalRowActuallyUsed(gm[1],Number(gm[2]),row));
+}
+function collectAppliedEffects(crime){var sec=g('section-'+crime),out=[];if(!sec)return out;var mgrs=sec.querySelectorAll('.bonus-manager');for(var i=0;i<mgrs.length;i++){var scope=mgrs[i].getAttribute('data-bonus-scope'),base=mgrs[i].getAttribute('data-bonus-base'),rows=mgrs[i].querySelectorAll('.bonus-row');for(var j=0;j<rows.length;j++){if(scope==='general'){var gm=base.match(/-general-pg(\d+)$/);if(gm&&generalRowActuallyUsed(crime,Number(gm[1]),rows[j]))out.push(bonusRowLabel(rows[j],mgrs[i]));}else if(rows[j].getAttribute('data-auto-consumed')==='1'&&rowValidForUse(rows[j]))out.push(bonusRowLabel(rows[j],mgrs[i]));}}
+ var sels=sec.querySelectorAll('select[id$="-k"],select[id$="-p"]');for(var k=0;k<sels.length;k++){var s=sels[k],v=Number(s.value);if(!v)continue;if(s.disabled&&s.getAttribute('data-readonly-disabled')!=='1')continue;var base=s.id.slice(0,-2);if(!phaseBaseHasResolvedProof(base))continue;var opt=s.options[s.selectedIndex],kind=/-k$/.test(s.id)?'CONOSCENZA':'POZIONE';out.push(kind+' · '+(opt?opt.text:s.value)+' · '+phaseNameFromBase(base));}return out;}
 function effectsSummaryHTML(crime){var arr=collectAppliedEffects(crime);if(!arr.length)return '';return '<div class="effects-final-box"><h4>Oggetti, Pozioni e Conoscenze usati</h4><ul>'+arr.map(function(x){return '<li>'+hEsc(x)+'</li>';}).join('')+'</ul></div>';}
 function decorateNumericInputs(root){root=root||g('rc-crimini');if(!root)return;var els=root.querySelectorAll('input[type="number"]:not(.legacy-object-input)');for(var i=0;i<els.length;i++){var e=els[i];if(e.getAttribute('data-number-decorated')==='1')continue;e.setAttribute('data-number-decorated','1');var h=document.createElement('span');h.className='numeric-hint';h.textContent='Inserire solo numeri interi';e.parentNode&&e.parentNode.appendChild(h);}}
 document.addEventListener('keydown',function(e){var n=e.target;if(!n||n.tagName!=='INPUT'||n.type!=='number')return;var bad=['e','E','. ','.',','];if(bad.indexOf(e.key)>=0){e.preventDefault();return;}if((e.key==='+'||e.key==='-')&&n.getAttribute('data-allow-sign')!=='1')e.preventDefault();},true);
@@ -589,12 +710,13 @@ g('app').innerHTML=html;
 var CRIME_BY_ROLL={1:'furto',2:'contrabbando',3:'pressione',4:'sicario',5:'affari'};
 var CRIME_NAME={furto:'Furto',contrabbando:'Contrabbando',pressione:'Pressione Psicologica',sicario:'Sicario',affari:'Affari Clandestini'};
 var ASSIGNED_CRIME=null;
+function crimeIsRestoring(){return !!window.__RC_RESTORING_SESSION__;}
 function confirmCrime(){
 var st=dieState('crime-roll',5),box=g('crime-assignment-status'),elig=g('crime-participants-confirm');
 if(!st.filled){if(box){box.className='assignment-status';box.textContent='Inserisci prima il risultato del 1d5.';}return;}
 if(!st.valid){if(box){box.className='assignment-status';box.textContent='Risultato impossibile: inserisci un intero da 1 a 5.';}return;}
 if(!elig||!elig.checked){
- if(RESTORING_SESSION){if(elig)elig.checked=true;}
+ if(crimeIsRestoring()){if(elig)elig.checked=true;}
  else{if(box){box.className='assignment-status';box.textContent='Conferma prima che la role abbia almeno 2 PG e che tutti possiedano uno dei requisiti previsti.';}return;}
 }
 ASSIGNED_CRIME=CRIME_BY_ROLL[st.value];
@@ -607,23 +729,277 @@ showCrime(ASSIGNED_CRIME,true);
 var PG_COUNT={furto:2,contrabbando:2,pressione:2,sicario:2,affari:2};
 var RENDERERS={};
 var PHASE_ORDER={furto:['faseI1','faseI2','faseII','faseIII'],contrabbando:['faseI','faseII','faseIII'],pressione:['faseI','faseII','faseIII'],sicario:['faseI','faseII','faseIII'],affari:['faseI','faseII','faseIII']};
-function snapshotValues(container){var map={};var els=container.querySelectorAll('input,select');for(var i=0;i<els.length;i++)map[els[i].id]=els[i].value;return map;}
-function restoreValues(container,map){var els=container.querySelectorAll('input,select');for(var i=0;i<els.length;i++)if(map.hasOwnProperty(els[i].id))els[i].value=map[els[i].id];}
-function clearPhaseResults(crime,phaseId){var c=g('section-'+crime);if(!c)return;var els=c.querySelectorAll('input');var pref=crime+'-'+phaseId+'-res';for(var i=0;i<els.length;i++)if(els[i].id.indexOf(pref)===0)els[i].value='';if(crime==='contrabbando'&&phaseId==='faseII'){var r=g('contrabbando-mezzo-res');if(r)r.value='';}}
+function snapshotValues(container){var map={};var els=container.querySelectorAll('input[id],select[id]');for(var i=0;i<els.length;i++)map[els[i].id]=els[i].value;return map;}
+function restoreSectionValues(container,map){var els=container.querySelectorAll('input[id],select[id]');for(var i=0;i<els.length;i++)if(map.hasOwnProperty(els[i].id))els[i].value=map[els[i].id];}
+function clearPhaseResults(crime,phaseId){var c=g('section-'+crime);if(!c)return;var els=c.querySelectorAll('input');var pref=crime+'-'+phaseId+'-res';for(var i=0;i<els.length;i++)if(els[i].id.indexOf(pref)===0)clearResultValue(els[i]);if(crime==='contrabbando'&&phaseId==='faseII'){var r=g('contrabbando-mezzo-res');if(r)clearResultValue(r);}}
+function clearSinglePhaseResult(crime,phaseId,pg){var r=g(crime+'-'+phaseId+'-res'+pg);if(r)clearResultValue(r);}
 function clearFromPhase(crime,phaseId,includeCurrent){var order=PHASE_ORDER[crime]||[];var pos=-1;for(var i=0;i<order.length;i++)if(order[i]===phaseId){pos=i;break;}if(pos<0)return;var start=includeCurrent?pos:pos+1;for(var j=start;j<order.length;j++)clearPhaseResults(crime,order[j]);}
 function clearAllRollResults(crime){var order=PHASE_ORDER[crime]||[];for(var i=0;i<order.length;i++)clearPhaseResults(crime,order[i]);}
+function phaseOutcomeForPg(crime,phase,pg){
+ var tag=g(crime+'-'+phase+'-tag'+pg),res=g(crime+'-'+phase+'-res'+pg);
+ if(tag&&tag.classList){
+  if(tag.classList.contains('ok'))return true;
+  if(tag.classList.contains('no'))return false;
+ }
+ if(!res)return null;
+ var sides=Number(res.getAttribute('data-die-sides')||res.getAttribute('max')||0),
+     th=Number(res.getAttribute('data-current-threshold')),
+     ds=sides?dieState(res.id,sides):{valid:false};
+ if(!ds.valid||!isFinite(th))return null;
+ return ds.value<=th;
+}
+function groupOutcomeWithReplacement(crime,phase,pg,replacement,rule){
+ var n=PG_COUNT[crime]||0,any=false,all=true,unknown=false;
+ for(var i=1;i<=n;i++){
+  var v=i===pg?replacement:phaseOutcomeForPg(crime,phase,i);
+  if(v===null||v===undefined){unknown=true;continue;}
+  if(v===true)any=true;else all=false;
+ }
+ if(rule==='all'){if(!all)return false;if(unknown)return null;return true;}
+ if(any)return true;if(unknown)return null;return false;
+}
+function downstreamRule(crime,phase){
+ if((crime==='furto'&&(phase==='faseI1'||phase==='faseI2'))||(crime==='contrabbando'&&phase==='faseI'))return 'all';
+ if((crime==='furto'&&phase==='faseII')||
+    (crime==='pressione'&&phase==='faseII')||
+    (crime==='sicario'&&(phase==='faseI'||phase==='faseII'))||
+    (crime==='affari'&&(phase==='faseI'||phase==='faseII')))return 'any';
+ return '';
+}
+function invalidateDownstreamForKnownOutcome(crime,phase,pg,oldOutcome,newOutcome){
+ if(oldOutcome===newOutcome)return;
+ if(crime==='pressione'&&phase==='faseI'){
+  /* La Fase I modifica personalmente la soglia di Fase II: invalida solo
+     il tiro di Fase II dello stesso PG. La normale logica della Fase II
+     decide poi se il carry di gruppo è ancora garantito e può preservare
+     i risultati della Fase III. */
+  invalidatePhaseControlForPg(crime,'faseII',pg);
+  return;
+ }
+ var rule=downstreamRule(crime,phase);
+ if(rule){
+  var before=groupOutcomeWithReplacement(crime,phase,pg,oldOutcome,rule),
+      after=groupOutcomeWithReplacement(crime,phase,pg,newOutcome,rule);
+  if(before!==null&&after!==null&&before===after)return;
+ }
+ clearFromPhase(crime,phase,false);
+}
+function invalidateDownstreamForUnknownOutcome(crime,phase,pg){
+ if(crime==='pressione'&&phase==='faseI'){
+  /* La Fase I modifica personalmente la soglia di Fase II: invalida solo
+     il tiro di Fase II dello stesso PG. La normale logica della Fase II
+     decide poi se il carry di gruppo è ancora garantito e può preservare
+     i risultati della Fase III. */
+  invalidatePhaseControlForPg(crime,'faseII',pg);
+  return;
+ }
+ var rule=downstreamRule(crime,phase),n=PG_COUNT[crime]||0,i;
+ if(rule==='any'){
+  for(i=1;i<=n;i++){if(i!==pg&&phaseOutcomeForPg(crime,phase,i)===true)return;}
+ }else if(rule==='all'){
+  for(i=1;i<=n;i++){if(i!==pg&&phaseOutcomeForPg(crime,phase,i)===false)return;}
+ }
+ clearFromPhase(crime,phase,false);
+}
+function invalidatePhaseControlForPg(crime,phase,pg){
+ if(!phase||!pg)return;
+ clearSinglePhaseResult(crime,phase,pg);
+ invalidateDownstreamForUnknownOutcome(crime,phase,pg);
+}
+function contrabbandoTransportContinuationClass(value){
+ var v=Number(value),mezzo=g('contrabbando-mezzo'),carico=g('contrabbando-carico');
+ if(!mezzo||!carico||!isFinite(v)||Math.floor(v)!==v||v<1||v>5)return '';
+ var idx=['3','0','-3','-5'].indexOf(String(carico.value))+1,info=contrabbandoTransportNote(mezzo.value,idx);
+ if(!info.needCheck)return 'continue';
+ var hit=info.breakOn&&info.breakOn.indexOf(v)>=0;
+ return hit&&info.damage==='total'?'catastrophic':'continue';
+}
+function contrabbandoMezzoMechanicalKey(mezzo,caricoValue){
+ var idx=['3','0','-3','-5'].indexOf(String(caricoValue))+1;if(idx<1||!mezzo)return '';
+ var info=contrabbandoTransportNote(mezzo,idx)||{},br=(info.breakOn||[]).slice().sort(function(a,b){return a-b;}).join(',');
+ return [info.needCheck?'check':'auto',Number(info.fatica||0),Number(info.destrezza||0),String(info.damage||''),br].join('|');
+}
+function handlePhaseResultEdit(crime,target){
+ if(!target||!target.id)return false;
+ var cardId=phaseCardIdOf(target),phase=phaseFromCardId(crime,cardId);
+ if(!phase||!isPhaseResultId(crime,phase,target.id))return false;
+ var raw=String(target.value||'').trim(),last=target.getAttribute('data-last-valid')||'',sides=Number(target.getAttribute('data-die-sides')||target.getAttribute('max')||0);
+ if(raw!==''){
+  var n=Number(raw);
+  if(!sides||!isFinite(n)||Math.floor(n)!==n||n<1||n>sides){
+   target.value=last;
+   return true;
+  }
+ }
+ if(raw===last)return true;
+ var special=(crime==='contrabbando'&&phase==='faseII'&&target.id==='contrabbando-mezzo-res');
+ var pg=controlPgIndex(target.id);
+ if(raw===''){
+  var oldOutcome=null;
+  if(!special&&last!==''&&pg){
+   var th0=Number(target.getAttribute('data-current-threshold'));
+   if(isFinite(th0))oldOutcome=Number(last)<=th0;
+  }
+  clearResultValue(target);
+  if(special)clearFromPhase(crime,phase,false);
+  else if(pg&&oldOutcome!==null)invalidateDownstreamForKnownOutcome(crime,phase,pg,oldOutcome,null);
+  else clearFromPhase(crime,phase,false);
+  return true;
+ }
+ if(special&&last!==''){
+  var oldTransport=contrabbandoTransportContinuationClass(last),newTransport=contrabbandoTransportContinuationClass(raw);
+  if(oldTransport&&newTransport&&oldTransport===newTransport){target.setAttribute('data-last-valid',raw);return true;}
+  releaseResultUse(target);
+  clearFromPhase(crime,phase,false);
+  return true;
+ }
+ if(!special&&last!==''&&pg){
+  var th=Number(target.getAttribute('data-current-threshold')),oldN=Number(last),newN=Number(raw);
+  if(isFinite(th)){
+   var oldOk=oldN<=th,newOk=newN<=th;
+   if(oldOk===newOk){target.setAttribute('data-last-valid',raw);return true;}
+   releaseResultUse(target);
+   invalidateDownstreamForKnownOutcome(crime,phase,pg,oldOk,newOk);
+   return true;
+  }
+ }
+ if(!special&&last===''&&pg){
+  var thNew=Number(target.getAttribute('data-current-threshold')),newVal=Number(raw);
+  if(isFinite(thNew)&&isFinite(newVal)){
+   var newOutcome=newVal<=thNew;
+   /* Se il gruppo aveva già un esito garantito senza questo PG, il nuovo
+      tiro non cambia il carry a valle: conserva i risultati già preservati. */
+   if(crime==='pressione'&&phase==='faseI'){
+    target.setAttribute('data-last-valid',raw);
+    return true;
+   }
+   var ruleNew=downstreamRule(crime,phase);
+   if(ruleNew){
+    var beforeNew=groupOutcomeWithReplacement(crime,phase,pg,null,ruleNew),
+        afterNew=groupOutcomeWithReplacement(crime,phase,pg,newOutcome,ruleNew);
+    if(beforeNew!==null&&afterNew!==null&&beforeNew===afterNew){target.setAttribute('data-last-valid',raw);return true;}
+   }
+  }
+ }
+ releaseResultUse(target);
+ clearFromPhase(crime,phase,false);
+ return true;
+}
 function phaseCardIdOf(target){var root=g('rc-crimini'),n=target;while(n&&n!==root){if(n.id&&n.id.indexOf('-card')>0&&(' '+n.className+' ').indexOf(' card ')>=0)return n.id;n=n.parentNode;}return '';}
 function phaseFromCardId(crime,cardId){var pref=crime+'-',suf='-card';if(cardId.indexOf(pref)!==0||cardId.slice(-suf.length)!==suf)return '';return cardId.slice(pref.length,-suf.length);}
 function isPhaseResultId(crime,phaseId,id){return id.indexOf(crime+'-'+phaseId+'-res')===0||(crime==='contrabbando'&&phaseId==='faseII'&&id==='contrabbando-mezzo-res');}
-function invalidateForChange(crime,target){if(!target||!target.id)return;var id=target.id,cardId=phaseCardIdOf(target),phase=phaseFromCardId(crime,cardId);if(phase){if(isPhaseResultId(crime,phase,id))clearFromPhase(crime,phase,false);else clearFromPhase(crime,phase,true);return;}if(crime==='pressione'&&id==='pressione-profilo'){clearFromPhase(crime,'faseIII',true);return;}if(crime==='sicario'&&id==='sicario-incarico'){clearFromPhase(crime,'faseIII',true);return;}if(id===crime+'-bottino'||id===crime+'-carico'||id===crime+'-profilo'||id.indexOf(crime+'-')===0){clearAllRollResults(crime);}}
-function addPG(crime){clearAllRollResults(crime);PG_COUNT[crime]++;rerender(crime);}
-function removePG(crime){if(PG_COUNT[crime]>2){clearAllRollResults(crime);PG_COUNT[crime]--;rerender(crime);}}
-function rerender(crime){var c=g('section-'+crime),snap=snapshotValues(c),bs=captureBonusRows(c);c.innerHTML=RENDERERS[crime].render(PG_COUNT[crime]);restoreBonusRows(bs,c);restoreValues(c,snap);migrateLegacyObjectBonuses();RENDERERS[crime].recompute(PG_COUNT[crime]);applyValidation(crime);decorateNumericInputs(c);refreshBonusSummaries(c);if(typeof SESSION_READONLY!=='undefined'&&SESSION_READONLY&&typeof applyWorkspaceReadOnlyLocks==='function')setTimeout(applyWorkspaceReadOnlyLocks,0);}
-function initCrime(crime){var c=g('section-'+crime);c.innerHTML=RENDERERS[crime].render(PG_COUNT[crime]);c.addEventListener('input',function(e){var row=e.target.closest?e.target.closest('.bonus-row'):null,mgr=row&&row.closest?row.closest('.bonus-manager'):null;if(mgr)invalidateBonusBase(mgr.getAttribute('data-bonus-base'));else invalidateForChange(crime,e.target);RENDERERS[crime].recompute(PG_COUNT[crime]);applyValidation(crime);refreshBonusSummaries(c);});c.addEventListener('change',function(e){var row=e.target.closest?e.target.closest('.bonus-row'):null,mgr=row&&row.closest?row.closest('.bonus-manager'):null;if(row&&e.target.getAttribute('data-role')==='active')handleBonusToggle(row,e.target.checked);if(mgr)invalidateBonusBase(mgr.getAttribute('data-bonus-base'));else invalidateForChange(crime,e.target);RENDERERS[crime].recompute(PG_COUNT[crime]);applyValidation(crime);refreshBonusSummaries(c);});RENDERERS[crime].recompute(PG_COUNT[crime]);applyValidation(crime);decorateNumericInputs(c);refreshBonusSummaries(c);}
+function controlPgIndex(id){var m=String(id||'').match(/-b(\d+)-(?:k|p|pt)$/);if(m)return Number(m[1]);m=String(id||'').match(/(\d+)$/);return m?Number(m[1]):0;}
+function earliestPhaseUsingStat(crime,pg,key){var phases=phasesUsingStats(crime,pg,[key]);return phases.length?phases[0]:'';}
+function invalidatePgFromPhase(crime,phase,pg){if(!phase||!pg)return;clearSinglePhaseResult(crime,phase,pg);invalidateDownstreamForUnknownOutcome(crime,phase,pg);}
+function pressureProfileModeModifier(profile,method){var p=(typeof PROFILO_MOD!=='undefined'&&PROFILO_MOD[profile])||null;if(!p)return null;if(method==='corr')return p.corr;if(method==='ric')return p.ric;if(method==='intim')return p.intim;return null;}
+function invalidatePressureProfileChange(target){var oldP=target.getAttribute('data-last-mech-value')||'',newP=String(target.value||''),n=PG_COUNT.pressione||0;if(!oldP||!newP){clearFromPhase('pressione','faseIII',true);return;}for(var i=1;i<=n;i++){var m=g('pressione-faseIII-metodo'+i),method=m?m.value:'',a=pressureProfileModeModifier(oldP,method),b=pressureProfileModeModifier(newP,method);if(a===null||b===null||a!==b)clearSinglePhaseResult('pressione','faseIII',i);}}
+function invalidateSicarioIncaricoChange(target){
+ var oldInc=target.getAttribute('data-last-mech-value')||'',newInc=String(target.value||''),oldAff=SICARIO_INCARICO_METODO[oldInc]||'',newAff=SICARIO_INCARICO_METODO[newInc]||'',n=PG_COUNT.sicario||0;
+ if(!oldInc||!newInc){clearAllRollResults('sicario');return;}
+ if(oldAff===newAff)return;
+ for(var i=1;i<=n;i++){
+  var m=g('sicario-faseIII-metodo'+i),method=m?m.value:'',oldBonus=(method&&method===oldAff)?3:0,newBonus=(method&&method===newAff)?3:0;
+  if(oldBonus!==newBonus)clearSinglePhaseResult('sicario','faseIII',i);
+ }
+}
+function captureProofMechanics(crime){
+ var sec=g('section-'+crime),out={};if(!sec)return out;
+ var order=PHASE_ORDER[crime]||[],n=PG_COUNT[crime]||0;
+ for(var p=0;p<order.length;p++)for(var i=1;i<=n;i++){
+  var phase=order[p],id=crime+'-'+phase+'-res'+i,r=g(id);if(!r||r.value==='')continue;
+  var sides=Number(r.getAttribute('data-die-sides')||r.getAttribute('max')||0),th=Number(r.getAttribute('data-current-threshold')),
+      btn=g(crime+'-'+phase+'-btn'+i),sig=btn?(btn.getAttribute('data-dice')||''):'';
+  if(!sides||!dieState(id,sides).valid)continue;
+  out[id]={phase:phase,pg:i,sig:sig,outcome:isFinite(th)?Number(r.value)<=th:null};
+ }
+ return out;
+}
+function invalidateChangedProofMechanics(crime,before){
+ var after=captureProofMechanics(crime),order=PHASE_ORDER[crime]||[],n=PG_COUNT[crime]||0;
+ for(var p=0;p<order.length;p++)for(var i=1;i<=n;i++){
+  var phase=order[p],id=crime+'-'+phase+'-res'+i,a=before&&before[id],b=after[id],r=g(id);
+  if(!a||!b||!r||a.sig===b.sig)continue;
+  clearResultValue(r);
+  if(a.outcome!==null&&b.outcome!==null)invalidateDownstreamForKnownOutcome(crime,phase,i,a.outcome,b.outcome);
+  else invalidateDownstreamForUnknownOutcome(crime,phase,i);
+ }
+}
+function prospectiveMechanicalControl(crime,target){
+ if(!target||!target.id)return false;var id=String(target.id||'');
+ if(new RegExp('^'+crime+'-[A-Za-z][A-Za-z0-9]*\\d+$').test(id))return true;
+ return /^(?:contrabbando-(?:faseI|faseIII)|pressione-faseI|sicario-faseI|affari-faseIII)-sap\d+$/.test(id);
+}
+function applyProspectiveMechanicalInvalidation(crime,before){
+ RENDERERS[crime].recompute(PG_COUNT[crime]);
+ invalidateChangedProofMechanics(crime,before||{});
+}
+function invalidateForChange(crime,target){
+ if(!target||!target.id)return;var id=target.id,cardId=phaseCardIdOf(target),phase=phaseFromCardId(crime,cardId);
+ if(crime==='contrabbando'&&id==='contrabbando-mezzo'){
+  var oldMezzo=target.getAttribute('data-last-mech-value')||'',newMezzo=String(target.value||''),caricoEl=g('contrabbando-carico'),caricoVal=caricoEl?caricoEl.value:'';
+  if(oldMezzo&&newMezzo&&contrabbandoMezzoMechanicalKey(oldMezzo,caricoVal)===contrabbandoMezzoMechanicalKey(newMezzo,caricoVal))return;
+ }
+ /* Nella Pressione Psicologica la voce modificata è meccanicamente inerte
+    finché la Pozione vale 0/Nessuna: configurarla in anticipo non deve
+    cancellare una prova già risolta. */
+ if(crime==='pressione'&&phase&&/-pt$/.test(id)){
+  var potion=g(id.replace(/-pt$/,'-p'));
+  if(!potion||Number(potion.value)===0)return;
+ }
+ if(phase){
+  if(isPhaseResultId(crime,phase,id)){clearFromPhase(crime,phase,false);return;}
+  var phasePg=controlPgIndex(id);
+  if(phasePg){invalidatePhaseControlForPg(crime,phase,phasePg);return;}
+  clearFromPhase(crime,phase,true);return;
+ }
+ if(crime==='affari'&&id==='affari-evento'){if(!choiceReady(id))clearAllRollResults(crime);return;}
+ if(crime==='pressione'&&id==='pressione-profilo'){invalidatePressureProfileChange(target);return;}
+ if(crime==='sicario'&&id==='sicario-incarico'){invalidateSicarioIncaricoChange(target);return;}
+ var sm=String(id).match(new RegExp('^'+crime+'-([A-Za-z][A-Za-z0-9]*)(\\d+)$'));
+ if(sm){var stat=sm[1],pg=Number(sm[2]);invalidatePgStatTargets(crime,pg,[stat]);return;}
+ if(id===crime+'-bottino'||id===crime+'-carico'||id===crime+'-profilo'||id.indexOf(crime+'-')===0)clearAllRollResults(crime);
+}
+function invalidateForParticipantCountChange(crime){if(crime==='furto')clearFromPhase(crime,'faseI2',true);else clearFromPhase(crime,'faseII',true);}
+function addPG(crime){invalidateForParticipantCountChange(crime);PG_COUNT[crime]++;rerender(crime);}
+function removePG(crime){if(PG_COUNT[crime]>2){invalidateForParticipantCountChange(crime);PG_COUNT[crime]--;rerender(crime);}}
+function rerender(crime){var c=g('section-'+crime),snap=snapshotValues(c),bs=captureBonusRows(c);c.innerHTML=RENDERERS[crime].render(PG_COUNT[crime]);restoreBonusRows(bs,c);restoreSectionValues(c,snap);migrateLegacyObjectBonuses();RENDERERS[crime].recompute(PG_COUNT[crime]);applyValidation(crime);reconcileAllBonusUses(crime);decorateNumericInputs(c);refreshBonusSummaries(c);if(typeof SESSION_READONLY!=='undefined'&&SESSION_READONLY&&typeof applyWorkspaceReadOnlyLocks==='function')setTimeout(applyWorkspaceReadOnlyLocks,0);}
+function bonusEditNeedsInvalidation(row,target){
+ if(!row)return false;
+ var mgr=row.closest?row.closest('.bonus-manager'):null,role=target&&target.getAttribute?target.getAttribute('data-role'):'';
+ var before=row.getAttribute('data-mech-key')||'',after=bonusMechanicalKey(row,mgr);
+ var src=row.querySelector?row.querySelector('[data-role="source"]'):null;
+ if(src)row.setAttribute('data-source-ok',String(src.value||'').trim()?'1':'0');
+ row.setAttribute('data-last-mech-before',before);row.setAttribute('data-last-mech-after',after);row.setAttribute('data-mech-key',after);
+ /* La condizione è descrittiva: cambiarne il testo non modifica da sola
+    l'applicazione, che resta governata dalla casella Applica. */
+ if(role==='condition')return false;
+ return before!==after;
+}
+function prepareBonusSourceMarkers(root){if(!root)return;var rows=[];if(root.classList&&root.classList.contains('bonus-row'))rows.push(root);var nested=root.querySelectorAll?root.querySelectorAll('.bonus-row'):[];for(var n=0;n<nested.length;n++)rows.push(nested[n]);for(var i=0;i<rows.length;i++){var s=rows[i].querySelector('[data-role="source"]'),mgr=rows[i].closest?rows[i].closest('.bonus-manager'):null;rows[i].setAttribute('data-source-ok',s&&String(s.value||'').trim()?'1':'0');rows[i].setAttribute('data-mech-key',bonusMechanicalKey(rows[i],mgr));}}
+function initCrime(crime){
+ var c=g('section-'+crime);c.innerHTML=RENDERERS[crime].render(PG_COUNT[crime]);prepareBonusSourceMarkers(c);
+ c.addEventListener('input',function(e){
+  if(handlePhaseResultEdit(crime,e.target)){RENDERERS[crime].recompute(PG_COUNT[crime]);applyValidation(crime);reconcileAllBonusUses(crime);refreshBonusSummaries(c);return;}
+  var row=e.target.closest?e.target.closest('.bonus-row'):null,mgr=row&&row.closest?row.closest('.bonus-manager'):null;
+  if(mgr){if(mgr.getAttribute('data-bonus-scope')==='general'){var beforeBonus=captureProofMechanics(crime);bonusEditNeedsInvalidation(row,e.target);applyProspectiveMechanicalInvalidation(crime,beforeBonus);}else if(bonusEditNeedsInvalidation(row,e.target))invalidateBonusBase(mgr.getAttribute('data-bonus-base'),row.getAttribute('data-last-mech-before')||'',row.getAttribute('data-last-mech-after')||'');}
+  else if(prospectiveMechanicalControl(crime,e.target)){var beforeControl=captureProofMechanics(crime);applyProspectiveMechanicalInvalidation(crime,beforeControl);}
+  else invalidateForChange(crime,e.target);
+  RENDERERS[crime].recompute(PG_COUNT[crime]);applyValidation(crime);reconcileAllBonusUses(crime);refreshBonusSummaries(c);
+ });
+ c.addEventListener('change',function(e){
+  if(handlePhaseResultEdit(crime,e.target)){RENDERERS[crime].recompute(PG_COUNT[crime]);applyValidation(crime);reconcileAllBonusUses(crime);refreshBonusSummaries(c);return;}
+  var row=e.target.closest?e.target.closest('.bonus-row'):null,mgr=row&&row.closest?row.closest('.bonus-manager'):null;
+  if(mgr){if(mgr.getAttribute('data-bonus-scope')==='general'){var beforeBonus=captureProofMechanics(crime);bonusEditNeedsInvalidation(row,e.target);applyProspectiveMechanicalInvalidation(crime,beforeBonus);}else if(bonusEditNeedsInvalidation(row,e.target))invalidateBonusBase(mgr.getAttribute('data-bonus-base'),row.getAttribute('data-last-mech-before')||'',row.getAttribute('data-last-mech-after')||'');}
+  else if(prospectiveMechanicalControl(crime,e.target)){var beforeControl=captureProofMechanics(crime);applyProspectiveMechanicalInvalidation(crime,beforeControl);}
+  else invalidateForChange(crime,e.target);
+  RENDERERS[crime].recompute(PG_COUNT[crime]);applyValidation(crime);reconcileAllBonusUses(crime);refreshBonusSummaries(c);
+ });
+ RENDERERS[crime].recompute(PG_COUNT[crime]);applyValidation(crime);reconcileAllBonusUses(crime);decorateNumericInputs(c);refreshBonusSummaries(c);
+}
 
 /* ============ 1. FURTO ============ */
 function renderFurto(n){var html='<h2>1. Furto</h2><p class="desc">Sottrarre oggetti di valore, artefatti, ingredienti illegali o altro. Vietato in abitazioni di PG Giocanti o in luoghi ufficiali di Diagon Alley, Notturn Alley o Hogsmeade: scegli location di colore o di fantasia.</p><div class="step-marker"><div class="num">A</div><h3 style="margin:0">Determina il Bottino</h3></div><div class="card"><div class="dice-row"><button type="button" class="dice-btn" data-dice="[dice=1d3]Determinazione del Bottino — Furto[/dice]" data-action="copy-dice"><span class="ico" aria-hidden="true"><i class="fa-solid fa-dice-d20"></i></span> Copia dado — Bottino</button><span class="dice-copied">Copiato!</span></div><label class="field">Risultato ottenuto'+selectHTMLBlank('furto-bottino',[[3,'1 — Bottino Minore (+3)'],[0,'2 — Bottino Notevole (0)'],[-4,'3 — Bottino Elevato (-4)']],true,'— risultato 1d3 —')+'</label></div><div class="step-marker"><div class="num">B</div><h3 style="margin:0">Statistiche dei Personaggi coinvolti</h3></div><div class="card">'+pgStatsCardHTML('furto',n,[{key:'destrezza',label:'Destrezza'},{key:'sapOscura',label:'Sapienza Oscura'},{key:'fatica',label:'Fatica'}])+'<button type="button" class="btn" data-action="add-pg" data-crime="furto">+ Aggiungi PG</button></div><div class="step-marker"><div class="num">C</div><h3 style="margin:0">Fase I — Infiltrazione, primo tentativo</h3></div><div class="card" id="furto-faseI1-card"><p class="desc">1d40 ≤ Destrezza + Sapienza Oscura/5 ± Bottino. Devono riuscire tutti i PG.</p>'+(function(){var s='';for(var i=1;i<=n;i++)s+='<div class="pg-card"><h4>PG '+i+'</h4>'+supportHTML('furto-faseI1-b'+i,BONUS_STD,true,true)+rollBlock('furto','faseI1',i,40)+'</div>';return s;})()+esitoBoxHTML('furto-faseI1-esito')+'</div><div class="step-marker"><div class="num">C2</div><h3 style="margin:0">Fase I — Secondo tentativo</h3></div><div class="card" id="furto-faseI2-card"><p class="desc">Si effettua solo se il primo tentativo fallisce. Tutti i PG ritirano con un ulteriore malus automatico di -3.</p>'+phaseLockHTML('furto-faseI2-card')+(function(){var s='';for(var i=1;i<=n;i++)s+='<div class="pg-card"><h4>PG '+i+'</h4>'+supportHTML('furto-faseI2-b'+i,BONUS_STD,true,true)+rollBlock('furto','faseI2',i,40)+'</div>';return s;})()+esitoBoxHTML('furto-faseI2-esito')+'</div><div class="step-marker"><div class="num">D</div><h3 style="margin:0">Fase II — Recupero</h3></div><div class="card" id="furto-faseII-card"><p class="desc">1d50 ≤ Destrezza + Sapienza Oscura ± Bottino. Basta che almeno un PG riesca.</p>'+phaseLockHTML('furto-faseII-card')+(function(){var s='';for(var i=1;i<=n;i++)s+='<div class="pg-card"><h4>PG '+i+'</h4>'+supportHTML('furto-faseII-b'+i,BONUS_STD,true,true)+rollBlock('furto','faseII',i,50)+'</div>';return s;})()+esitoBoxHTML('furto-faseII-esito')+'</div><div class="step-marker"><div class="num">E</div><h3 style="margin:0">Fase III — Fuga</h3></div><div class="card" id="furto-faseIII-card"><p class="desc">1d50 ≤ Destrezza + Fatica attuale ± Bottino. Inserisci la Fatica già consumata prima del tiro: il calcolatore la sottrae dalla Fatica indicata nel pannello PG.</p>'+phaseLockHTML('furto-faseIII-card')+(function(){var s='';for(var i=1;i<=n;i++)s+='<div class="pg-card"><h4>PG '+i+'</h4><label class="field">Fatica consumata prima del tiro<input type="number" id="furto-faseIII-fatsp'+i+'" value="0" min="0" step="1"></label>'+supportHTML('furto-faseIII-b'+i,BONUS_STD,true,true)+rollBlock('furto','faseIII',i,50)+'</div>';return s;})()+esitoBoxHTML('furto-faseIII-esito')+'</div>';return html;}
-function recomputeFurto(n){
+function recomputeFurto(n){resetFormulaUsage('furto');
 var bottino=parseInt(g('furto-bottino').value,10),t1=[],t1b=[],t2=[],t3=[],badFat=[],i;
 for(i=1;i<=n;i++){
  var d=num('furto-destrezza'+i),s=num('furto-sapOscura'+i),f=num('furto-fatica'+i),base,b,x,q;
@@ -639,10 +1015,10 @@ RENDERERS.furto={render:renderFurto,recompute:recomputeFurto};
 /* ============ 2. CONTRABBANDO ============ */
 function contrabbandoTransportNote(mezzo,carico){carico=parseInt(carico,10);if(mezzo==='carrozza')return {needCheck:false,duration:3,text:'Compatibile con qualunque carico. Durata: 3 post per PG.'};if(mezzo==='passaporta'){if(carico<=2)return {needCheck:false,duration:1,fatica:-3,text:'Compatibile. Durata: 1 post per PG; -3 Fatica fino alla fine della role.'};return {needCheck:true,duration:1,fatica:-3,breakOn:[1],damage:'partial',text:'Combinazione non compatibile. Durata: 1 post per PG; -3 Fatica fino alla fine della role. Tira un unico 1d5 per tutto il gruppo: con 1 il carico si danneggia parzialmente e, anche in caso di successo finale, non si guadagnano Galeoni.'};}if(mezzo==='scopa'){if(carico<=2)return {needCheck:false,duration:2,text:'Compatibile. Durata: 2 post per PG.'};return {needCheck:true,duration:2,breakOn:[1,2],damage:'partial',text:'Combinazione non compatibile. Durata: 2 post per PG. Tira un unico 1d5 per tutto il gruppo: con 1-2 il carico si danneggia parzialmente e, anche in caso di successo finale, non si guadagnano Galeoni.'};}if(mezzo==='smater'){if(carico===1)return {needCheck:false,duration:1,destrezza:-3,text:'Compatibile. Durata: 1 post per PG; -3 Destrezza fino alla fine della role.'};return {needCheck:true,duration:1,destrezza:-3,breakOn:[1],damage:'total',text:'Combinazione non compatibile. Durata: 1 post per PG; -3 Destrezza fino alla fine della role. Tira un unico 1d5 per tutto il gruppo: con 1 il carico si rompe o si disperde del tutto e la missione fallisce.'};}return {needCheck:false,text:''};}
 function renderContrabbando(n){var html='<h2>2. Contrabbando</h2><p class="desc">Trasporto e consegna di materiale proibito, prezioso o illegale, eludendo controlli, pattuglie o trappole magiche. I mezzi sono considerati disponibili di base ai fini della Ricerca; non si applicano i normali bonus, malus o Parametri dei Mezzi di Trasporto.</p><div class="step-marker"><div class="num">A</div><h3 style="margin:0">Determina il Tipo di Carico</h3></div><div class="card"><div class="dice-row"><button type="button" class="dice-btn" data-dice="[dice=1d4]Determinazione del Tipo di Carico — Contrabbando[/dice]" data-action="copy-dice"><span class="ico" aria-hidden="true"><i class="fa-solid fa-dice-d20"></i></span> Copia dado — Tipo di Carico</button><span class="dice-copied">Copiato!</span></div><label class="field">Risultato ottenuto'+selectHTMLBlank('contrabbando-carico',[[3,'1 — Comune e Discreto (+3)'],[0,'2 — Sensibile ma Gestibile (0)'],[-3,'3 — Illegale o Instabile (-3)'],[-5,'4 — Altamente Proibito (-5)']],true,'— risultato 1d4 —')+'</label></div><div class="step-marker"><div class="num">B</div><h3 style="margin:0">Statistiche dei Personaggi coinvolti</h3></div><div class="card">'+pgStatsCardHTML('contrabbando',n,[{key:'acume',label:'Acume'},{key:'sapOscura',label:'Sapienza Oscura'},{key:'sapMentale',label:'Sapienza Mentale'},{key:'fatica',label:'Fatica'},{key:'destrezza',label:'Destrezza'}])+'<button type="button" class="btn" data-action="add-pg" data-crime="contrabbando">+ Aggiungi PG</button></div><div class="step-marker"><div class="num">C</div><h3 style="margin:0">Fase I — Preparazione e Carico</h3></div><div class="card" id="contrabbando-faseI-card"><p class="desc">1d40 ≤ Acume + Sapienza Oscura oppure Mentale/5 ± Carico. Ogni PG sceglie quale Sapienza utilizzare; devono riuscire tutti.</p>'+(function(){var s='';for(var i=1;i<=n;i++)s+='<div class="pg-card"><h4>PG '+i+'</h4><label class="field">Sapienza utilizzata'+selectHTMLBlank('contrabbando-faseI-sap'+i,[['oscura','Sapienza Oscura'],['mentale','Sapienza Mentale']],true,'— scegli —')+'</label>'+supportHTML('contrabbando-faseI-b'+i,BONUS_STD,true,true)+rollBlock('contrabbando','faseI',i,40)+'</div>';return s;})()+esitoBoxHTML('contrabbando-faseI-esito')+'</div><div class="step-marker"><div class="num">D</div><h3 style="margin:0">Fase II — Trasporto e Attraversamento</h3></div><div class="card" id="contrabbando-faseII-card">'+phaseLockHTML('contrabbando-faseII-card')+'<label class="field">Mezzo scelto'+selectHTMLBlank('contrabbando-mezzo',[['carrozza','Carrozza Magica / a piedi / su creatura'],['passaporta','Passaporta'],['scopa','Scopa Volante'],['smater','Smaterializzazione']],true,'— scegli il mezzo —')+'</label><div class="rc-note" id="contrabbando-mezzo-note"></div><div id="contrabbando-check-wrap"><div class="rc-note"><b>Verifica unica di gruppo:</b> quando richiesta, si lancia un solo 1d5 per tutti i PG.</div><div class="dice-row"><button type="button" class="dice-btn" id="contrabbando-check-btn" data-dice="[dice=1d5]Verifica integrità del carico — Contrabbando Fase II — unico tiro per il gruppo[/dice]" data-action="copy-dice"><span class="ico" aria-hidden="true"><i class="fa-solid fa-dice-d20"></i></span> Copia 1d5 — Verifica Carico</button><span class="dice-copied">Copiato!</span></div><div class="result-row"><label class="field">Risultato ottenuto<input type="number" id="contrabbando-mezzo-res"></label><span class="tag" id="contrabbando-mezzo-tag">In attesa del tiro</span></div></div>'+esitoBoxHTML('contrabbando-faseII-esito')+'</div><div class="step-marker"><div class="num">E</div><h3 style="margin:0">Fase III — Consegna e Copertura</h3></div><div class="card" id="contrabbando-faseIII-card">'+phaseLockHTML('contrabbando-faseIII-card')+'<p class="desc">1d50 ≤ Fatica attuale + Destrezza ± Carico + Sapienza Oscura oppure Mentale/5. Inserisci la Fatica già consumata; i malus del mezzo vengono applicati automaticamente.</p>'+(function(){var s='';for(var i=1;i<=n;i++)s+='<div class="pg-card"><h4>PG '+i+'</h4><label class="field">Sapienza utilizzata'+selectHTMLBlank('contrabbando-faseIII-sap'+i,[['oscura','Sapienza Oscura'],['mentale','Sapienza Mentale']],true,'— scegli —')+'</label><label class="field">Fatica consumata prima del tiro<input type="number" id="contrabbando-faseIII-fatsp'+i+'" value="0" min="0" step="1"></label>'+supportHTML('contrabbando-faseIII-b'+i,BONUS_STD,true,true)+rollBlock('contrabbando','faseIII',i,50)+'</div>';return s;})()+esitoBoxHTML('contrabbando-faseIII-esito')+'<div class="rc-note" id="contrabbando-reward-note"></div></div>';return html;}
-function recomputeContrabbando(n){
+function recomputeContrabbando(n){resetFormulaUsage('contrabbando');
 var cSel=g('contrabbando-carico'),carico=parseInt(cSel.value,10),caricoIdx=['3','0','-3','-5'].indexOf(cSel.value)+1,t1=[],t3=[],badFat=[],i;
 for(i=1;i<=n;i++){var a=num('contrabbando-acume'+i),rawS=g('contrabbando-faseI-sap'+i).value==='mentale'?num('contrabbando-sapMentale'+i):num('contrabbando-sapOscura'+i),base='contrabbando-faseI-b'+i,aa=phaseStat(base,'acume',a),ss=phaseStat(base,'sapienza',rawS),b=num(base+'-k')+num(base+'-p')+phaseThresholdBonus(base),x=fl(aa)+fl(ss/5)+carico+b;t1.push(x);var q=aa+' Acume + '+fl(ss/5)+' (Sapienza/5)'+signText(carico,'Carico')+signText(b,'Supporti/effetti diretti');setFormulaPreview('contrabbando-faseI-f'+i,40,x,q);setDice('contrabbando-faseI-btn'+i,'[dice=1d40]Riesce se 1-'+effectiveThreshold(x,40)+' ('+q+' = '+x+') — Contrabbando, Fase I, PG'+i+'[/dice]');setDiceButtonLabel('contrabbando-faseI-btn'+i,40,x,i);updateTag('contrabbando-faseI-res'+i,'contrabbando-faseI-tag'+i,x,40);}
-var st1=computeEsito('contrabbando','faseI',n,t1,'all',40),access2=st1.complete&&st1.valid&&st1.success;setPhaseAccess('contrabbando-faseII-card',access2,access2?'':'La missione prosegue solo se tutti superano la Fase I.');var mezzo=g('contrabbando-mezzo').value,info=contrabbandoTransportNote(mezzo,caricoIdx);setTxt('contrabbando-mezzo-note',info.text);var wrap=g('contrabbando-check-wrap'),transport={complete:false,success:false,damage:false,catastrophic:false};if(access2){if(info.needCheck){wrap.style.display='block';var ds=dieState('contrabbando-mezzo-res',5);updateTag('contrabbando-mezzo-res','contrabbando-mezzo-tag',info.breakOn[0]-1,5);if(!ds.filled)setBox('contrabbando-faseII-esito','','In attesa del tiro di sicurezza del carico.');else if(!ds.valid)setBox('contrabbando-faseII-esito','','Risultato impossibile: inserisci un intero da 1 a 5.');else{transport.complete=true;var hit=info.breakOn.indexOf(ds.value)>=0;if(hit&&info.damage==='total'){transport.catastrophic=true;setBox('contrabbando-faseII-esito','no','Carico distrutto o disperso: missione fallita.');g('contrabbando-mezzo-tag').textContent='Carico distrutto/disperso';g('contrabbando-mezzo-tag').className='tag no';}else if(hit){transport.success=true;transport.damage=true;setBox('contrabbando-faseII-esito','ok','Trasporto completato, ma il carico è parzialmente danneggiato: la missione può proseguire senza Galeoni.');g('contrabbando-mezzo-tag').textContent='Carico parzialmente danneggiato';g('contrabbando-mezzo-tag').className='tag no';}else{transport.success=true;setBox('contrabbando-faseII-esito','ok','Trasporto completato: carico integro.');g('contrabbando-mezzo-tag').textContent='Carico integro';g('contrabbando-mezzo-tag').className='tag ok';}}}else{wrap.style.display='none';transport.complete=true;transport.success=true;setBox('contrabbando-faseII-esito','ok','Trasporto autoconclusivo: si passa alla Fase III.');}}else{wrap.style.display=info.needCheck?'block':'none';setBox('contrabbando-faseII-esito','','Fase bloccata.');}
+var st1=computeEsito('contrabbando','faseI',n,t1,'all',40),access2=st1.complete&&st1.valid&&st1.success;setPhaseAccess('contrabbando-faseII-card',access2,access2?'':'La missione prosegue solo se tutti superano la Fase I.');var mezzoEl=g('contrabbando-mezzo'),mezzo=mezzoEl.value;if(mezzoEl)mezzoEl.setAttribute('data-last-mech-value',mezzo);var info=contrabbandoTransportNote(mezzo,caricoIdx);setTxt('contrabbando-mezzo-note',info.text);var wrap=g('contrabbando-check-wrap'),transport={complete:false,success:false,damage:false,catastrophic:false};if(access2){if(info.needCheck){wrap.style.display='block';var ds=dieState('contrabbando-mezzo-res',5);updateTag('contrabbando-mezzo-res','contrabbando-mezzo-tag',info.breakOn[0]-1,5);if(!ds.filled)setBox('contrabbando-faseII-esito','','In attesa del tiro di sicurezza del carico.');else if(!ds.valid)setBox('contrabbando-faseII-esito','','Risultato impossibile: inserisci un intero da 1 a 5.');else{transport.complete=true;var hit=info.breakOn.indexOf(ds.value)>=0;if(hit&&info.damage==='total'){transport.catastrophic=true;setBox('contrabbando-faseII-esito','no','Carico distrutto o disperso: missione fallita.');g('contrabbando-mezzo-tag').textContent='Carico distrutto/disperso';g('contrabbando-mezzo-tag').className='tag no';}else if(hit){transport.success=true;transport.damage=true;setBox('contrabbando-faseII-esito','ok','Trasporto completato, ma il carico è parzialmente danneggiato: la missione può proseguire senza Galeoni.');g('contrabbando-mezzo-tag').textContent='Carico parzialmente danneggiato';g('contrabbando-mezzo-tag').className='tag no';}else{transport.success=true;setBox('contrabbando-faseII-esito','ok','Trasporto completato: carico integro.');g('contrabbando-mezzo-tag').textContent='Carico integro';g('contrabbando-mezzo-tag').className='tag ok';}}}else{wrap.style.display='none';transport.complete=true;transport.success=true;setBox('contrabbando-faseII-esito','ok','Trasporto autoconclusivo: si passa alla Fase III.');}}else{wrap.style.display=info.needCheck?'block':'none';setBox('contrabbando-faseII-esito','','Fase bloccata.');}
 var access3=access2&&transport.complete&&!transport.catastrophic;setPhaseAccess('contrabbando-faseIII-card',access3,access3?'':'Completa con successo le fasi precedenti.');for(i=1;i<=n;i++){var base='contrabbando-faseIII-b'+i,fat=phaseStat(base,'fatica',num('contrabbando-fatica'+i)),fatsp=rawNum('contrabbando-faseIII-fatsp'+i),fatbad=fatsp<0||fatsp>fat,fatcur=fl(fat)-fl(fatsp),des=phaseStat(base,'destrezza',num('contrabbando-destrezza'+i)),rawSap=g('contrabbando-faseIII-sap'+i).value==='mentale'?num('contrabbando-sapMentale'+i):num('contrabbando-sapOscura'+i),sap=phaseStat(base,'sapienza',rawSap),mFat=(access3&&info.fatica)?info.fatica:0,mDes=(access3&&info.destrezza)?info.destrezza:0;badFat.push(fatbad);var sup=num(base+'-k')+num(base+'-p')+phaseThresholdBonus(base),x3=fatcur+mFat+fl(des)+mDes+carico+fl(sap/5)+sup;t3.push(x3);var q3=fatcur+' Fatica attuale ('+fat+' - '+fatsp+')'+signText(mFat,'Mezzo')+' + '+des+' Destrezza'+signText(mDes,'Mezzo')+signText(carico,'Carico')+' + '+fl(sap/5)+' (Sapienza/5)'+signText(sup,'Supporti/effetti diretti');setFormulaPreview('contrabbando-faseIII-f'+i,50,x3,q3);setDice('contrabbando-faseIII-btn'+i,'[dice=1d50]Riesce se 1-'+effectiveThreshold(x3,50)+' ('+q3+' = '+x3+') — Contrabbando, Fase III, PG'+i+'[/dice]');setDiceButtonLabel('contrabbando-faseIII-btn'+i,50,x3,i);updateTag('contrabbando-faseIII-res'+i,'contrabbando-faseIII-tag'+i,x3,50);}
 for(i=1;i<=n;i++)if(access3&&badFat[i-1]){setTxt('contrabbando-faseIII-f'+i,'<b>Fatica consumata non valida</b><br>Deve essere compresa fra 0 e la Fatica effettiva del PG.');g('contrabbando-faseIII-btn'+i).disabled=true;g('contrabbando-faseIII-res'+i).disabled=true;}if(access3&&!badFat.some(function(v){return v;})){var st3=computeEsito('contrabbando','faseIII',n,t3,'atLeastOne',50);if(transport.damage)setTxt('contrabbando-reward-note','Il carico è parzialmente danneggiato: anche in caso di successo finale non si guadagnano Galeoni.');else setTxt('contrabbando-reward-note','');if(st3.complete&&st3.valid&&st3.success&&transport.damage)setBox('contrabbando-faseIII-esito','ok','Esito Fase: SUCCESSO — consegna completata, ma senza Galeoni per il danno al carico.');}else if(access3){setBox('contrabbando-faseIII-esito','','Correggi la Fatica consumata prima di effettuare i tiri.');setTxt('contrabbando-reward-note','');}else{setBox('contrabbando-faseIII-esito','','Fase bloccata.');setTxt('contrabbando-reward-note','');}refreshBonusSummaries(g('section-contrabbando'));}
 RENDERERS.contrabbando={render:renderContrabbando,recompute:recomputeContrabbando};
@@ -651,8 +1027,8 @@ RENDERERS.contrabbando={render:renderContrabbando,recompute:recomputeContrabband
 var PROFILO_MOD={avido:{label:'Avido',corr:3,intim:0,ric:-3},codardo:{label:'Codardo',corr:-3,intim:3,ric:3},sospettoso:{label:'Sospettoso',corr:0,intim:0,ric:0},orgoglioso:{label:'Orgoglioso',corr:-3,intim:-3,ric:-3},pericoloso:{label:'Pericoloso',corr:3,intim:-3,ric:0},ingenuo:{label:'Ingenuo',corr:3,intim:3,ric:3}};
 function renderPressione(n){var html='<h2>3. Pressione Psicologica</h2><p class="desc">Conoscenze solo di colore. Le Pozioni modificano una voce della formula del PG; gli Oggetti/Borsa applicano solo i bonus previsti dal Prezzario. Non è consentito utilizzare magia direttamente sul bersaglio né danneggiarlo fisicamente.</p><div class="step-marker"><div class="num">A</div><h3 style="margin:0">Statistiche dei Personaggi coinvolti</h3></div><div class="card">'+pgStatsCardHTML('pressione',n,[{key:'volonta',label:'Volontà'},{key:'sapOscura',label:'Sapienza Oscura'},{key:'sapMentale',label:'Sapienza Mentale'},{key:'lvPers',label:'Lv Persuasore'},{key:'dialettica',label:'Dialettica'},{key:'sinistri',label:'Punti Sinistri'},{key:'acume',label:'Acume'},{key:'resistenza',label:'Resistenza'}])+'<button type="button" class="btn" data-action="add-pg" data-crime="pressione">+ Aggiungi PG</button></div><div class="step-marker"><div class="num">B</div><h3 style="margin:0">Fase I — Preparazione e Indagine</h3></div><div class="card" id="pressione-faseI-card"><p class="desc">1d60 ≤ Volontà + Sapienza Oscura oppure Mentale/5 + Lv Persuasore + Dialettica + Punti Sinistri/2. Ogni PG sceglie quale Sapienza utilizzare.</p>'+(function(){var s='';var tg=[['volonta','Volontà'],['sapienza','Sapienza scelta'],['lvPers','Lv Persuasore'],['dialettica','Dialettica'],['sinistri','Punti Sinistri']];for(var i=1;i<=n;i++)s+='<div class="pg-card"><h4>PG '+i+'</h4><label class="field">Sapienza utilizzata'+selectHTMLBlank('pressione-faseI-sap'+i,[['oscura','Sapienza Oscura'],['mentale','Sapienza Mentale']],true,'— scegli —')+'</label>'+pressurePotionHTML('pressione-faseI-b'+i,tg)+rollBlock('pressione','faseI',i,60)+'</div>';return s;})()+esitoBoxHTML('pressione-faseI-esito')+'<div class="rc-note">Ogni PG che fallisce riceve personalmente -3 Possibilità nella Fase II. Si passa comunque alla Fase II una volta completati tutti i tiri.</div></div><div class="step-marker"><div class="num">C</div><h3 style="margin:0">Determina il Profilo della Vittima</h3></div><div class="card"><div class="dice-row"><button type="button" class="dice-btn" data-dice="[dice=1d6]Profilo della Vittima — Pressione Psicologica[/dice]" data-action="copy-dice"><span class="ico" aria-hidden="true"><i class="fa-solid fa-dice-d20"></i></span> Copia dado — Profilo Vittima</button><span class="dice-copied">Copiato!</span></div><label class="field">Risultato ottenuto'+selectHTMLBlank('pressione-profilo',[['avido','1 — Avido'],['codardo','2 — Codardo'],['sospettoso','3 — Sospettoso'],['orgoglioso','4 — Orgoglioso'],['pericoloso','5 — Pericoloso'],['ingenuo','6 — Ingenuo']],true,'— risultato 1d6 —')+'</label><div class="rc-note" id="pressione-profilo-note"></div></div><div class="step-marker"><div class="num">D</div><h3 style="margin:0">Fase II — Pianificazione e Avvicinamento</h3></div><div class="card" id="pressione-faseII-card">'+phaseLockHTML('pressione-faseII-card')+'<p class="desc">Ogni PG lancia 1d40 su Volontà + Acume, con l’eventuale -3 personale dalla Fase I.</p>'+(function(){var s='';var tg=[['volonta','Volontà'],['acume','Acume']];for(var i=1;i<=n;i++)s+='<div class="pg-card"><h4>PG '+i+'</h4>'+pressurePotionHTML('pressione-faseII-b'+i,tg)+rollBlock('pressione','faseII',i,40)+'</div>';return s;})()+esitoBoxHTML('pressione-faseII-esito')+'<div class="rc-note">Almeno un successo: +3 per tutti in Fase III. Tutti falliscono: -3 per tutti in Fase III.</div></div><div class="step-marker"><div class="num">E</div><h3 style="margin:0">Fase III — Applicazione della Modalità</h3></div><div class="card" id="pressione-faseIII-card">'+phaseLockHTML('pressione-faseIII-card')+(function(){var s='';for(var i=1;i<=n;i++)s+='<div class="pg-card"><h4>PG '+i+'</h4><label class="field">Modalità scelta'+selectHTMLBlank('pressione-faseIII-metodo'+i,[['corr','Corruzione (1d20)'],['ric','Ricatto (1d30)'],['intim','Intimidazione (1d40)']],true,'— scegli il metodo —')+'</label>'+pressurePotionHTML('pressione-faseIII-b'+i,[['dialettica','Dialettica'],['lvPers','Lv Persuasore']])+rollBlock('pressione','faseIII',i,20)+'</div>';return s;})()+esitoBoxHTML('pressione-faseIII-esito')+'</div>';return html;}
 function boosted(v,target,key,bonus){return key===target?v+bonus:v;}
-function recomputePressione(n){
-var p=g('pressione-profilo').value,prof=PROFILO_MOD[p]||{label:'non determinato',corr:0,intim:0,ric:0};setTxt('pressione-profilo-note',p?('Profilo attuale: <b>'+prof.label+'</b> — Corruzione '+(prof.corr>=0?'+':'')+prof.corr+', Intimidazione '+(prof.intim>=0?'+':'')+prof.intim+', Ricatto '+(prof.ric>=0?'+':'')+prof.ric+'.'):'Determina prima il Profilo della Vittima con 1d6.');var t1=[],t2=[],t3=[],sides3=[],i;
+function recomputePressione(n){resetFormulaUsage('pressione');
+var pEl=g('pressione-profilo'),p=pEl.value,prof=PROFILO_MOD[p]||{label:'non determinato',corr:0,intim:0,ric:0};if(pEl)pEl.setAttribute('data-last-mech-value',p);setTxt('pressione-profilo-note',p?('Profilo attuale: <b>'+prof.label+'</b> — Corruzione '+(prof.corr>=0?'+':'')+prof.corr+', Intimidazione '+(prof.intim>=0?'+':'')+prof.intim+', Ricatto '+(prof.ric>=0?'+':'')+prof.ric+'.'):'Determina prima il Profilo della Vittima con 1d6.');var t1=[],t2=[],t3=[],sides3=[],i;
 for(i=1;i<=n;i++){var vo=num('pressione-volonta'+i),sa=g('pressione-faseI-sap'+i).value==='mentale'?num('pressione-sapMentale'+i):num('pressione-sapOscura'+i),lv=num('pressione-lvPers'+i),di=num('pressione-dialettica'+i),si=num('pressione-sinistri'+i),base='pressione-faseI-b'+i,pb=num(base+'-p'),pt=g(base+'-pt').value;var v1=phaseStat(base,'volonta',boosted(vo,pt,'volonta',pb)),s1=phaseStat(base,'sapienza',boosted(sa,pt,'sapienza',pb)),l1=phaseStat(base,'lvPers',boosted(lv,pt,'lvPers',pb)),d1v=phaseStat(base,'dialettica',boosted(di,pt,'dialettica',pb)),si1=phaseStat(base,'sinistri',boosted(si,pt,'sinistri',pb)),direct=phaseThresholdBonus(base),x1=fl(v1)+fl(s1/5)+l1+d1v+fl(si1/2)+direct;t1.push(x1);var q1=v1+' Volontà + '+fl(s1/5)+' (Sapienza/5) + '+l1+' Lv Persuasore + '+d1v+' Dialettica + '+fl(si1/2)+' (Punti Sinistri/2)'+signText(direct,'Effetto diretto');setFormulaPreview('pressione-faseI-f'+i,60,x1,q1);setDice('pressione-faseI-btn'+i,'[dice=1d60]Riesce se 1-'+effectiveThreshold(x1,60)+' ('+q1+' = '+x1+') — Pressione Psicologica, Fase I, PG'+i+'[/dice]');setDiceButtonLabel('pressione-faseI-btn'+i,60,x1,i);updateTag('pressione-faseI-res'+i,'pressione-faseI-tag'+i,x1,60);}
 var st1=computeEsito('pressione','faseI',n,t1,'atLeastOne',60),access2=st1.complete&&st1.valid;setPhaseAccess('pressione-faseII-card',access2,access2?'':'Completa tutti i tiri della Fase I.');
 for(i=1;i<=n;i++){var base='pressione-faseII-b'+i,vo2=num('pressione-volonta'+i),ac2=num('pressione-acume'+i),pb2=num(base+'-p'),pt2=g(base+'-pt').value,vv=phaseStat(base,'volonta',boosted(vo2,pt2,'volonta',pb2)),aa=phaseStat(base,'acume',boosted(ac2,pt2,'acume',pb2)),mal=(access2&&st1.perPG[i-1]===false)?-3:0,direct=phaseThresholdBonus(base),x2=fl(vv)+fl(aa)+mal+direct;t2.push(x2);var q2=vv+' Volontà + '+aa+' Acume'+signText(mal,'Fase I')+signText(direct,'Effetto diretto');setFormulaPreview('pressione-faseII-f'+i,40,x2,q2);setDice('pressione-faseII-btn'+i,'[dice=1d40]Riesce se 1-'+effectiveThreshold(x2,40)+' ('+q2+' = '+x2+') — Pressione Psicologica, Fase II, PG'+i+'[/dice]');setDiceButtonLabel('pressione-faseII-btn'+i,40,x2,i);updateTag('pressione-faseII-res'+i,'pressione-faseII-tag'+i,x2,40);}
@@ -668,14 +1044,14 @@ RENDERERS.pressione={render:renderPressione,recompute:recomputePressione};
 /* ============ 4. SICARIO ============ */
 var SICARIO_INCARICO_METODO={'1':'furtivo','2':'dannopsi','3':'azionem','4':'furtivo','5':'dannogen'};
 function renderSicario(n){var html='<h2>4. Sicario</h2><p class="desc">Esecuzione di un incarico a pagamento. Conoscenza e Pozione possono essere usate insieme e i bonus si sommano; nell’approccio Testimoni non si ottengono bonus tramite Pozioni o magie e il loro uso in presenza dei testimoni fa fallire automaticamente quel tentativo.</p><div class="step-marker"><div class="num">A</div><h3 style="margin:0">Determina il Profilo del Bersaglio</h3></div><div class="card"><div class="dice-row"><button type="button" class="dice-btn" data-dice="[dice=1d4]Profilo del Bersaglio — Sicario[/dice]" data-action="copy-dice"><span class="ico" aria-hidden="true"><i class="fa-solid fa-dice-d20"></i></span> Copia dado — Profilo Bersaglio</button><span class="dice-copied">Copiato!</span></div><label class="field">Risultato ottenuto'+selectHTMLBlank('sicario-profilo',[[3,'1 — Isolato/Poco noto (+3)'],[0,'2 — Conosciuto (0)'],[-3,'3 — Ricco/Frequentato (-3)'],[-5,'4 — Celebre/Protetto (-5)']],true,'— risultato 1d4 —')+'</label></div><div class="step-marker"><div class="num">B</div><h3 style="margin:0">Determina il Tipo di Incarico</h3></div><div class="card"><div class="dice-row"><button type="button" class="dice-btn" data-dice="[dice=1d5]Tipo di Incarico — Sicario[/dice]" data-action="copy-dice"><span class="ico" aria-hidden="true"><i class="fa-solid fa-dice-d20"></i></span> Copia dado — Tipo di Incarico</button><span class="dice-copied">Copiato!</span></div><label class="field">Risultato ottenuto'+selectHTMLBlank('sicario-incarico',[['1','1 — Eliminazione totale'],['2','2 — Punizione o vendetta'],['3','3 — Rimozione/manipolazione mnemonica'],['4','4 — Inscenamento'],['5','5 — Missione alternativa o simbolica']],true,'— risultato 1d5 —')+'</label></div><div class="step-marker"><div class="num">C</div><h3 style="margin:0">Statistiche dei Personaggi coinvolti</h3></div><div class="card">'+pgStatsCardHTML('sicario',n,[{key:'volonta',label:'Volontà'},{key:'dialettica',label:'Dialettica'},{key:'lvPers',label:'Lv Persuasore'},{key:'sapMentale',label:'Sapienza Mentale'},{key:'destrezza',label:'Destrezza'},{key:'popolarita',label:'Popolarità'},{key:'sapArcaica',label:'Sapienza Arcaica'},{key:'sinistri',label:'Punti Sinistri'},{key:'acume',label:'Acume'},{key:'sapOscura',label:'Sapienza Oscura'}])+'<button type="button" class="btn" data-action="add-pg" data-crime="sicario">+ Aggiungi PG</button></div><div class="step-marker"><div class="num">D</div><h3 style="margin:0">Fase I — Raccolta Informazioni</h3></div><div class="card" id="sicario-faseI-card">'+(function(){var s='';for(var i=1;i<=n;i++)s+='<div class="pg-card"><h4>PG '+i+'</h4><label class="field">Metodo scelto'+selectHTMLBlank('sicario-faseI-metodo'+i,[['testimoni','Testimoni (1d40)'],['pedinamento','Pedinamento e spionaggio (1d30)'],['tracce','Individuazione tracce di magia (1d40)'],['intimric','Intimidazioni/minacce/ricatti (1d60)']],true,'— scegli il metodo —')+'</label><div id="sicario-faseI-sapwrap'+i+'"><label class="field">Sapienza per Intimidazioni/Ricatti'+selectHTMLBlank('sicario-faseI-sap'+i,[['oscura','Sapienza Oscura'],['mentale','Sapienza Mentale']],true,'— scegli —')+'</label></div><div id="sicario-testimoni-wrap'+i+'"><label class="field">Magia o Pozione usata in presenza dei testimoni?'+selectHTMLBlank('sicario-testimoni-uso'+i,[['no','No'],['si','Sì — fallimento automatico']],true,'— dichiara —')+'</label></div>'+supportHTML('sicario-faseI-b'+i,BONUS_STD,true,true)+'<div class="rc-note" id="sicario-testimoni-note'+i+'"></div>'+rollBlock('sicario','faseI',i,40)+'</div>';return s;})()+esitoBoxHTML('sicario-faseI-esito')+'</div><div class="step-marker"><div class="num">E</div><h3 style="margin:0">Fase II — Avvicinamento</h3></div><div class="card" id="sicario-faseII-card">'+phaseLockHTML('sicario-faseII-card')+'<p class="desc">1d35 ≤ Acume + Punti Sinistri/2 ± Profilo, con eventuale -3 automatico se tutti hanno fallito la Fase I.</p>'+(function(){var s='';for(var i=1;i<=n;i++)s+='<div class="pg-card"><h4>PG '+i+'</h4>'+supportHTML('sicario-faseII-b'+i,BONUS_STD,true,true)+rollBlock('sicario','faseII',i,35)+'</div>';return s;})()+esitoBoxHTML('sicario-faseII-esito')+'</div><div class="step-marker"><div class="num">F</div><h3 style="margin:0">Fase III — Esecuzione</h3></div><div class="card" id="sicario-faseIII-card">'+phaseLockHTML('sicario-faseIII-card')+(function(){var s='';for(var i=1;i<=n;i++)s+='<div class="pg-card"><h4>PG '+i+'</h4><label class="field">Metodo scelto'+selectHTMLBlank('sicario-faseIII-metodo'+i,[['furtivo','Furtivo'],['azionem','Azione Mentale'],['dannogen','Danno generico o simbolico'],['dannopsi','Danno psicologico']],true,'— scegli il metodo —')+'</label>'+supportHTML('sicario-faseIII-b'+i,BONUS_SICARIO_III,true,true)+rollBlock('sicario','faseIII',i,40)+'</div>';return s;})()+esitoBoxHTML('sicario-faseIII-esito')+'</div>';return html;}
-function recomputeSicario(n){
-var prof=parseInt(g('sicario-profilo').value,10),inc=g('sicario-incarico').value,aff=SICARIO_INCARICO_METODO[inc],t1=[],s1=[],autoFail1=[],t2=[],t3=[],i;
-for(i=1;i<=n;i++){var vo=num('sicario-volonta'+i),di=num('sicario-dialettica'+i),lv=num('sicario-lvPers'+i),sm=num('sicario-sapMentale'+i),de=num('sicario-destrezza'+i),po=num('sicario-popolarita'+i),sa=num('sicario-sapArcaica'+i),si=num('sicario-sinistri'+i),ac=num('sicario-acume'+i),so=num('sicario-sapOscura'+i),met=g('sicario-faseI-metodo'+i).value,base='sicario-faseI-b'+i,ks=num(base+'-k'),ps=num(base+'-p'),direct=phaseThresholdBonus(base),ds,label,x,q;var psel=g(base+'-p'),sw=g('sicario-faseI-sapwrap'+i),tw=g('sicario-testimoni-wrap'+i),tuse=g('sicario-testimoni-uso'+i);sw.style.display=met==='intimric'?'block':'none';tw.style.display=met==='testimoni'?'block':'none';var forced=met==='testimoni'&&tuse.value==='si';autoFail1.push(forced);if(met==='testimoni'){ps=0;psel.disabled=true;setTxt('sicario-testimoni-note'+i,forced?'Uso di magia/Pozione dichiarato: questo approccio fallisce automaticamente, senza tiro.':'Con i Testimoni la Pozione non può fornire bonus; se vengono usate magie/Pozioni in loro presenza, seleziona “Sì” e il tentativo fallirà automaticamente.');}else{psel.disabled=false;setTxt('sicario-testimoni-note'+i,'');}var sup=ks+ps+direct;
+function recomputeSicario(n){resetFormulaUsage('sicario');
+var incEl=g('sicario-incarico'),prof=parseInt(g('sicario-profilo').value,10),inc=incEl.value,aff=SICARIO_INCARICO_METODO[inc],t1=[],s1=[],autoFail1=[],t2=[],t3=[],i;if(incEl)incEl.setAttribute('data-last-mech-value',inc);
+for(i=1;i<=n;i++){var vo=num('sicario-volonta'+i),di=num('sicario-dialettica'+i),lv=num('sicario-lvPers'+i),sm=num('sicario-sapMentale'+i),de=num('sicario-destrezza'+i),po=num('sicario-popolarita'+i),sa=num('sicario-sapArcaica'+i),si=num('sicario-sinistri'+i),ac=num('sicario-acume'+i),so=num('sicario-sapOscura'+i),met=g('sicario-faseI-metodo'+i).value,base='sicario-faseI-b'+i,ks=num(base+'-k'),ps=num(base+'-p'),direct=phaseThresholdBonus(base),ds,label,x,q;var psel=g(base+'-p'),sw=g('sicario-faseI-sapwrap'+i),tw=g('sicario-testimoni-wrap'+i),tuse=g('sicario-testimoni-uso'+i);sw.style.display=met==='intimric'?'block':'none';tw.style.display=met==='testimoni'?'block':'none';var forcedDeclared=met==='testimoni'&&tuse.value==='si',forced=forcedDeclared&&choiceReady('sicario-profilo')&&choiceReady('sicario-incarico')&&fieldsReady(statIds('sicario',['volonta','dialettica','lvPers','sapMentale'],i))&&standardSupportReady(base);autoFail1.push(forced);if(met==='testimoni'){ps=0;psel.disabled=true;setTxt('sicario-testimoni-note'+i,forcedDeclared?'Uso di magia/Pozione dichiarato: questo approccio fallisce automaticamente, senza tiro.':'Con i Testimoni la Pozione non può fornire bonus; se vengono usate magie/Pozioni in loro presenza, seleziona “Sì” e il tentativo fallirà automaticamente.');}else{psel.disabled=false;setTxt('sicario-testimoni-note'+i,'');}var sup=ks+ps+direct;
  if(met==='testimoni'){ds=40;label='Testimoni';var v=phaseStat(base,'volonta',vo),d=phaseStat(base,'dialettica',di),l=phaseStat(base,'lvPers',lv),s=phaseStat(base,'sapMentale',sm);x=fl(v)+fl(d)+l+fl(s/5)+prof+sup;q=v+' Volontà + '+d+' Dialettica + '+l+' Lv Persuasore + '+fl(s/5)+' (Sapienza Mentale/5)'+signText(prof,'Profilo')+signText(sup,'Supporti/effetti diretti');}
  else if(met==='pedinamento'){ds=30;label='Pedinamento';var d=phaseStat(base,'destrezza',de),p=phaseStat(base,'popolarita',po);x=fl(d)-fl(p/2)+prof+sup;q=d+' Destrezza - '+fl(p/2)+' (Popolarità/2)'+signText(prof,'Profilo')+signText(sup,'Supporti/effetti diretti');}
  else if(met==='tracce'){ds=40;label='Tracce di Magia';var a=phaseStat(base,'acume',ac),ar=phaseStat(base,'sapArcaica',sa);x=fl(a)+fl(ar/5)+prof+sup;q=a+' Acume + '+fl(ar/5)+' (Sapienza Arcaica/5)'+signText(prof,'Profilo')+signText(sup,'Supporti/effetti diretti');}
  else{ds=60;label='Intimidazioni/Ricatti';var v=phaseStat(base,'volonta',vo),sap=phaseStat(base,'sapienza',g('sicario-faseI-sap'+i).value==='mentale'?sm:so),l=phaseStat(base,'lvPers',lv),d=phaseStat(base,'dialettica',di),sn=phaseStat(base,'sinistri',si);x=fl(v)+fl(sap/5)+l+d+fl(sn/2)+prof+sup;q=v+' Volontà + '+fl(sap/5)+' (Sapienza scelta/5) + '+l+' Lv Persuasore + '+d+' Dialettica + '+fl(sn/2)+' (Punti Sinistri/2)'+signText(prof,'Profilo')+signText(sup,'Supporti/effetti diretti');}
- t1.push(x);s1.push(ds);setFormulaPreview('sicario-faseI-f'+i,ds,x,q);setDice('sicario-faseI-btn'+i,'[dice=1d'+ds+']Riesce se 1-'+effectiveThreshold(x,ds)+' ('+q+' = '+x+') — Sicario, Fase I '+label+', PG'+i+'[/dice]');setDiceButtonLabel('sicario-faseI-btn'+i,ds,x,i,label);if(forced){setTxt('sicario-faseI-f'+i,'<b>Fallimento automatico</b><br>Magia/Pozione usata in presenza dei testimoni.');g('sicario-faseI-btn'+i).disabled=true;g('sicario-faseI-res'+i).disabled=true;setTxt('sicario-faseI-tag'+i,'Fallimento automatico');g('sicario-faseI-tag'+i).className='tag no';}else{g('sicario-faseI-btn'+i).disabled=false;g('sicario-faseI-res'+i).disabled=false;updateTag('sicario-faseI-res'+i,'sicario-faseI-tag'+i,x,ds);}}
+ t1.push(x);s1.push(ds);setFormulaPreview('sicario-faseI-f'+i,ds,x,q);setDice('sicario-faseI-btn'+i,'[dice=1d'+ds+']Riesce se 1-'+effectiveThreshold(x,ds)+' ('+q+' = '+x+') — Sicario, Fase I '+label+', PG'+i+'[/dice]');setDiceButtonLabel('sicario-faseI-btn'+i,ds,x,i,label);if(forcedDeclared){setTxt('sicario-faseI-f'+i,'<b>Fallimento automatico</b><br>Magia/Pozione usata in presenza dei testimoni.');g('sicario-faseI-btn'+i).disabled=true;g('sicario-faseI-res'+i).disabled=true;setTxt('sicario-faseI-tag'+i,'Fallimento automatico');g('sicario-faseI-tag'+i).className='tag no';}else{g('sicario-faseI-btn'+i).disabled=false;g('sicario-faseI-res'+i).disabled=false;updateTag('sicario-faseI-res'+i,'sicario-faseI-tag'+i,x,ds);}}
 var st1=computeEsito('sicario','faseI',n,t1,'atLeastOne',s1,autoFail1),access2=st1.complete&&st1.valid;setPhaseAccess('sicario-faseII-card',access2,access2?'':'Completa tutti i tiri della Fase I.');var carry2=access2?(st1.success?0:-3):0;
 for(i=1;i<=n;i++){var base='sicario-faseII-b'+i,ac2=phaseStat(base,'acume',num('sicario-acume'+i)),si2=phaseStat(base,'sinistri',num('sicario-sinistri'+i)),sup2=num(base+'-k')+num(base+'-p')+phaseThresholdBonus(base),x2=fl(ac2)+fl(si2/2)+prof+carry2+sup2;t2.push(x2);var q2=ac2+' Acume + '+fl(si2/2)+' (Punti Sinistri/2)'+signText(prof,'Profilo')+signText(carry2,'Fase I')+signText(sup2,'Supporti/effetti diretti');setFormulaPreview('sicario-faseII-f'+i,35,x2,q2);setDice('sicario-faseII-btn'+i,'[dice=1d35]Riesce se 1-'+effectiveThreshold(x2,35)+' ('+q2+' = '+x2+') — Sicario, Fase II, PG'+i+'[/dice]');setDiceButtonLabel('sicario-faseII-btn'+i,35,x2,i);updateTag('sicario-faseII-res'+i,'sicario-faseII-tag'+i,x2,35);}
 var st2=access2?computeEsito('sicario','faseII',n,t2,'atLeastOne',35):null;if(!access2)setBox('sicario-faseII-esito','','Fase bloccata.');var access3=!!(st2&&st2.complete&&st2.valid);setPhaseAccess('sicario-faseIII-card',access3,access3?'':'Completa tutti i tiri della Fase II.');var carry3=access3?(st2.success?3:-3):0;
@@ -685,7 +1061,7 @@ RENDERERS.sicario={render:renderSicario,recompute:recomputeSicario};
 
 /* ============ 5. AFFARI CLANDESTINI ============ */
 function renderAffari(n){var html='<h2>5. Affari Clandestini</h2><p class="desc">Organizzare e dirigere eventi illegali. Conoscenza e Pozione possono essere utilizzate nello stesso post e i bonus si sommano.</p><div class="step-marker"><div class="num">A</div><h3 style="margin:0">Determina la Tipologia di Evento</h3></div><div class="card"><div class="dice-row"><button type="button" class="dice-btn" data-dice="[dice=1d5]Tipologia di Evento — Affari Clandestini[/dice]" data-action="copy-dice"><span class="ico" aria-hidden="true"><i class="fa-solid fa-dice-d20"></i></span> Copia dado — Tipologia Evento</button><span class="dice-copied">Copiato!</span></div><div class="rc-note">1: Duello/scontro/torneo/gara non autorizzati · 2: Festa o spettacolo illegale · 3: Asta di oggetti oscuri/illegali · 4: Raduno magico · 5: Evento di copertura.</div><label class="field">Risultato ottenuto'+selectHTMLBlank('affari-evento',[['1','1 — Duello/scontro/torneo/gara non autorizzati'],['2','2 — Festa o spettacolo illegale'],['3','3 — Asta di oggetti oscuri/illegali'],['4','4 — Raduno magico'],['5','5 — Evento di copertura']],true,'— risultato 1d5 —')+'</label></div><div class="step-marker"><div class="num">B</div><h3 style="margin:0">Statistiche dei Personaggi coinvolti</h3></div><div class="card">'+pgStatsCardHTML('affari',n,[{key:'volonta',label:'Volontà'},{key:'dialettica',label:'Dialettica'},{key:'lvPers',label:'Lv Persuasore'},{key:'sapMentale',label:'Sapienza Mentale'},{key:'sinistri',label:'Punti Sinistri'},{key:'sapOscura',label:'Sapienza Oscura'},{key:'acume',label:'Acume'},{key:'sapArcaica',label:'Sapienza Arcaica'},{key:'popolarita',label:'Popolarità'}])+'<button type="button" class="btn" data-action="add-pg" data-crime="affari">+ Aggiungi PG</button></div><div class="step-marker"><div class="num">C</div><h3 style="margin:0">Fase I — Reclutamento e Contatti</h3></div><div class="card" id="affari-faseI-card">'+(function(){var s='';for(var i=1;i<=n;i++)s+='<div class="pg-card"><h4>PG '+i+'</h4><label class="field">Metodo scelto'+selectHTMLBlank('affari-faseI-metodo'+i,[['persuasione','Persuasione'],['corruzione','Corruzione e ricatti'],['notorieta','Notorietà']],true,'— scegli il metodo —')+'</label>'+supportHTML('affari-faseI-b'+i,BONUS_STD,true,true)+rollBlock('affari','faseI',i,50)+'</div>';return s;})()+esitoBoxHTML('affari-faseI-esito')+'</div><div class="step-marker"><div class="num">D</div><h3 style="margin:0">Fase II — Organizzazione e Sicurezza</h3></div><div class="card" id="affari-faseII-card">'+phaseLockHTML('affari-faseII-card')+'<p class="desc">1d35 ≤ Acume + Sapienza Arcaica/5 ± esito Fase I.</p>'+(function(){var s='';for(var i=1;i<=n;i++)s+='<div class="pg-card"><h4>PG '+i+'</h4>'+supportHTML('affari-faseII-b'+i,BONUS_STD,true,true)+rollBlock('affari','faseII',i,35)+'</div>';return s;})()+esitoBoxHTML('affari-faseII-esito')+'</div><div class="step-marker"><div class="num">E</div><h3 style="margin:0">Fase III — Svolgimento dell’Evento</h3></div><div class="card" id="affari-faseIII-card">'+phaseLockHTML('affari-faseIII-card')+(function(){var s='';for(var i=1;i<=n;i++)s+='<div class="pg-card"><h4>PG '+i+'</h4><label class="field">Sapienza utilizzata'+selectHTMLBlank('affari-faseIII-sap'+i,[['mentale','Sapienza Mentale'],['oscura','Sapienza Oscura']],true,'— scegli —')+'</label>'+supportHTML('affari-faseIII-b'+i,BONUS_STD,true,true)+rollBlock('affari','faseIII',i,60)+'</div>';return s;})()+esitoBoxHTML('affari-faseIII-esito')+'</div>';return html;}
-function recomputeAffari(n){
+function recomputeAffari(n){resetFormulaUsage('affari');
 var t1=[],t2=[],t3=[],i;
 for(i=1;i<=n;i++){var vo=num('affari-volonta'+i),di=num('affari-dialettica'+i),lv=num('affari-lvPers'+i),sm=num('affari-sapMentale'+i),si=num('affari-sinistri'+i),so=num('affari-sapOscura'+i),po=num('affari-popolarita'+i),met=g('affari-faseI-metodo'+i).value,base='affari-faseI-b'+i,sup=num(base+'-k')+num(base+'-p')+phaseThresholdBonus(base),x,q,label;if(met==='persuasione'){label='Persuasione';vo=phaseStat(base,'volonta',vo);di=phaseStat(base,'dialettica',di);lv=phaseStat(base,'lvPers',lv);sm=phaseStat(base,'sapMentale',sm);x=fl(vo)+fl(di)+lv+fl(sm/5)+sup;q=vo+' Volontà + '+di+' Dialettica + '+lv+' Lv Persuasore + '+fl(sm/5)+' (Sapienza Mentale/5)'+signText(sup,'Supporti/effetti diretti');}else if(met==='corruzione'){label='Corruzione e Ricatti';vo=phaseStat(base,'volonta',vo);si=phaseStat(base,'sinistri',si);so=phaseStat(base,'sapOscura',so);x=fl(vo)+fl(si/2)+fl(so/5)+sup;q=vo+' Volontà + '+fl(si/2)+' (Punti Sinistri/2) + '+fl(so/5)+' (Sapienza Oscura/5)'+signText(sup,'Supporti/effetti diretti');}else{label='Notorietà';po=phaseStat(base,'popolarita',po);di=phaseStat(base,'dialettica',di);si=phaseStat(base,'sinistri',si);x=fl(po)+fl(di)-fl(si/2)+sup;q=po+' Popolarità + '+di+' Dialettica - '+fl(si/2)+' (Punti Sinistri/2)'+signText(sup,'Supporti/effetti diretti');}t1.push(x);setFormulaPreview('affari-faseI-f'+i,50,x,q);setDice('affari-faseI-btn'+i,'[dice=1d50]Riesce se 1-'+effectiveThreshold(x,50)+' ('+q+' = '+x+') — Affari Clandestini, Fase I '+label+', PG'+i+'[/dice]');setDiceButtonLabel('affari-faseI-btn'+i,50,x,i,label);updateTag('affari-faseI-res'+i,'affari-faseI-tag'+i,x,50);}
 var st1=computeEsito('affari','faseI',n,t1,'atLeastOne',50),access2=st1.complete&&st1.valid;setPhaseAccess('affari-faseII-card',access2,access2?'':'Completa tutti i tiri della Fase I.');var carry2=access2?(st1.success?3:-3):0;
@@ -813,7 +1189,7 @@ g('nav-btn-'+crime).classList.add('active');
 g('section-'+crime).scrollIntoView({behavior:'smooth',block:'start'});
 }
 var EVT='cli'+'ck';
-document.addEventListener(EVT,function(e){var t=e.target;while(t){if(t.getAttribute){var action=t.getAttribute('data-action');if(action){if(action==='copy-dice'){doCopy(t);return;}if(action==='confirm-crime'){confirmCrime();return;}if(action==='show-crime'){showCrime(t.getAttribute('data-crime'));return;}if(action==='add-pg'){addPG(t.getAttribute('data-crime'));return;}if(action==='remove-pg'){removePG(t.getAttribute('data-crime'));return;}if(action==='add-bonus'){var bb=t.getAttribute('data-bonus-base'),row=addBonusRow(bb,{});invalidateBonusBase(bb);var cm=String(bb||'').split('-')[0];if(RENDERERS[cm]){RENDERERS[cm].recompute(PG_COUNT[cm]);applyValidation(cm);}return;}if(action==='remove-bonus'){var row=t.closest?t.closest('.bonus-row'):null,mgr=row&&row.closest?row.closest('.bonus-manager'):null,bb=mgr?mgr.getAttribute('data-bonus-base'):'';if(row&&row.parentNode)row.parentNode.removeChild(row);invalidateBonusBase(bb);var cm=String(bb||'').split('-')[0];if(RENDERERS[cm]){RENDERERS[cm].recompute(PG_COUNT[cm]);applyValidation(cm);}return;}}}t=t.parentNode;}});
+document.addEventListener(EVT,function(e){var t=e.target;while(t){if(t.getAttribute){var action=t.getAttribute('data-action');if(action){if(action==='copy-dice'){doCopy(t);return;}if(action==='confirm-crime'){confirmCrime();return;}if(action==='show-crime'){showCrime(t.getAttribute('data-crime'));return;}if(action==='add-pg'){addPG(t.getAttribute('data-crime'));return;}if(action==='remove-pg'){removePG(t.getAttribute('data-crime'));return;}if(action==='add-bonus'){var bb=t.getAttribute('data-bonus-base'),row=addBonusRow(bb,{});if(row)prepareBonusSourceMarkers(row);var cm=String(bb||'').split('-')[0];if(RENDERERS[cm]){RENDERERS[cm].recompute(PG_COUNT[cm]);applyValidation(cm);}return;}if(action==='remove-bonus'){var row=t.closest?t.closest('.bonus-row'):null,mgr=row&&row.closest?row.closest('.bonus-manager'):null,bb=mgr?mgr.getAttribute('data-bonus-base'):'',cm=String(bb||'').split('-')[0],scope=mgr?mgr.getAttribute('data-bonus-scope'):'',beforeProofs=(cm&&scope==='general')?captureProofMechanics(cm):{},beforeKey=row?bonusMechanicalKey(row,mgr):'',wasUsed=bonusRowUsedInResolvedProof(row,mgr);if(scope!=='general'&&wasUsed)invalidateBonusBase(bb,beforeKey,'');if(row&&row.parentNode)row.parentNode.removeChild(row);if(RENDERERS[cm]){if(scope==='general')applyProspectiveMechanicalInvalidation(cm,beforeProofs);RENDERERS[cm].recompute(PG_COUNT[cm]);applyValidation(cm);reconcileAllBonusUses(cm);refreshBonusSummaries(g('section-'+cm));}return;}}}t=t.parentNode;}});
 document.addEventListener('DOMContentLoaded',function(){buildShell();initCrime('furto');initCrime('contrabbando');initCrime('pressione');initCrime('sicario');initCrime('affari');decorateNumericInputs(g('rc-crimini'));});
 </script>
 
@@ -1011,7 +1387,7 @@ function captureToolState(){
     values:captureValues()
   };
 }
-function restoreValues(values){
+function restoreSessionValues(values){
   var root=appRoot();if(!root||!values)return;
   Object.keys(values).forEach(function(id){
     var e=sq(id),v=values[id];
@@ -1056,19 +1432,22 @@ function recomputeAll(){
     if(typeof applyValidation==='function'){
       try{applyValidation(k);}catch(e){}
     }
+    try{reconcileAllBonusUses(k);}catch(e){}
   });
   refreshBonusSummaries(appRoot());
 }
 function restoreToolState(state,legacyCrimeKey){
-  RESTORING_SESSION=true;
+  RESTORING_SESSION=true;window.__RC_RESTORING_SESSION__=true;
   try{
     state=state||{};
     resetCrimeAssignment();
     renderForCounts(state.pgCount||{});
     restoreBonusRows(state.bonusRows||{});
-    restoreValues(state.values||{});
+    restoreSessionValues(state.values||{});
     migrateLegacyObjectBonuses();
     recomputeAll();
+    CRIME_KEYS.forEach(function(k){reconcileAllBonusUses(k);});
+    prepareBonusSourceMarkers(appRoot());
     decorateNumericInputs(appRoot());
     refreshBonusSummaries(appRoot());
 
@@ -1084,14 +1463,21 @@ function restoreToolState(state,legacyCrimeKey){
       recomputeAll();
     }
   }finally{
-    RESTORING_SESSION=false;
+    RESTORING_SESSION=false;window.__RC_RESTORING_SESSION__=false;
   }
 }
 
 function readonlyNavigationOrCopy(n){
-  if(!n||n.tagName!=='BUTTON')return false;
+  if(!n||!n.getAttribute)return false;
   var action=n.getAttribute('data-action')||'';
   return action==='copy-dice'||action==='show-crime'||action==='show-flow-page'||action==='copy-summary'||action==='summary-to-phase1';
+}
+function blockReadonlyMutationAction(e){
+  if(!SESSION_READONLY)return;
+  var root=appRoot(),n=e.target&&e.target.closest?e.target.closest('[data-action]'):null;
+  if(!root||!n||!root.contains(n)||readonlyNavigationOrCopy(n))return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
 }
 function clearWorkspaceReadOnlyLocks(){
   var root=appRoot();if(!root)return;
@@ -1117,7 +1503,7 @@ function sessionPayload(){
     tipoCrimine:ck?crimeName(ck):'',
     crimeKey:ck,
     updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
-    toolVersion:'v8',
+    toolVersion:'v34',
     toolState:state
   };
 }
@@ -1242,7 +1628,7 @@ function createSession(){
   if(!name){setStatus('session-home-msg','Inserisci prima il nome del PG principale.','bad');if(inp)inp.focus();return;}
   if(!FB.user){setStatus('session-home-msg','Firebase non è ancora pronto. Riprova tra un momento.','bad');return;}
   setCreatingSession(true);setStatus('session-home-msg','Creazione del Crimine…','');
-  var data={ownerUid:FB.user.uid,initialPgName:name,pgName:name,tipoCrimine:'',crimeKey:'',createdAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),toolVersion:'v8',toolState:{assignedCrime:null,pgCount:{furto:2,contrabbando:2,pressione:2,sicario:2,affari:2},activeCrime:'',values:{}}};
+  var data={ownerUid:FB.user.uid,initialPgName:name,pgName:name,tipoCrimine:'',crimeKey:'',createdAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),toolVersion:'v34',toolState:{assignedCrime:null,pgCount:{furto:2,contrabbando:2,pressione:2,sicario:2,affari:2},activeCrime:'',values:{}}};
   FB.db.collection(SESSION_COLLECTION).add(data).then(function(ref){
     setCreatingSession(false);if(inp)inp.value='';
     var localData={};Object.keys(data).forEach(function(k){localData[k]=data[k];});
@@ -1301,7 +1687,9 @@ function backToDashboard(){
 }
 function setupControls(){
   attachAutosave();
-  var root=appRoot();if(root&&window.MutationObserver&&!root.getAttribute('data-readonly-observer')){root.setAttribute('data-readonly-observer','1');new MutationObserver(function(){if(SESSION_READONLY)setTimeout(applyWorkspaceReadOnlyLocks,0);}).observe(root,{childList:true,subtree:true});}
+  var root=appRoot();
+  if(root&&!root.getAttribute('data-readonly-action-guard')){root.setAttribute('data-readonly-action-guard','1');root.addEventListener(EVT,blockReadonlyMutationAction,true);}
+  if(root&&window.MutationObserver&&!root.getAttribute('data-readonly-observer')){root.setAttribute('data-readonly-observer','1');new MutationObserver(function(){if(SESSION_READONLY)setTimeout(applyWorkspaceReadOnlyLocks,0);}).observe(root,{childList:true,subtree:true});}
   sq('btn-new-session').addEventListener(EVT,createSession);
   sq('new-session-pg').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();createSession();}});
   sq('btn-refresh-sessions').addEventListener(EVT,loadSessionList);
