@@ -1,3 +1,4 @@
+<!-- Cross-device sessions: ownership no longer tied to anonymous browser UID; requires matching Firestore rules update. -->
 <div id="rc-crimini" class="foglio" style="background:#08090A !important; color:#E7E8EA !important; width:100% !important; max-width:none !important; margin:0 !important; padding:0 !important;">
 <style>
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.min.css');
@@ -338,7 +339,7 @@
     <div class="session-card-head"><h2>Crimini in corso</h2></div>
     <div class="session-card-body">
       <p>Crea una sessione per la tua Ricerca Crimini oppure riaprine una già iniziata. Ogni Crimine viene salvato automaticamente mentre lo compili.</p>
-      <div class="session-warning"><b>Le sessioni in corso sono personali.</b> Lascia che a modificare o concludere una sessione sia soltanto chi l'ha creata. Il tool impedisce comunque le modifiche agli altri giocatori; il Narratore può gestire tutte le sessioni.</div>
+      <div class="session-warning"><b>Le sessioni sono condivise tra dispositivi.</b> Puoi riprendere questa Ricerca da un altro browser o dispositivo senza perdere il diritto di modificarla. Evita soltanto di modificare la stessa sessione contemporaneamente da due dispositivi.</div>
       <div id="firebase-auth-status" class="session-status">Connessione a Firebase…</div>
       <div class="session-new-row">
         <input id="new-session-pg" type="text" maxlength="80" placeholder="Nome del PG principale (es. Bellatrix Lestrange)">
@@ -1323,7 +1324,7 @@ function sq(id){return document.getElementById(id);}
 function workspace(){return sq('crime-workspace');}
 function appRoot(){return sq('app');}
 function sessionCanEdit(data){
-  return !!(FB.user&&data&&(data.ownerUid===FB.user.uid||FB.user.uid===NARRATOR_UID));
+  return !!(FB.user && data);
 }
 function setStatus(id,text,kind){
   var n=sq(id);if(!n)return;
@@ -1523,6 +1524,7 @@ function sessionPayload(){
   var state=captureToolState();
   var ck=state.assignedCrime||'';
   return {
+    publicSession:true,
     ownerUid:CURRENT_SESSION_DATA.ownerUid,
     initialPgName:CURRENT_SESSION_DATA.initialPgName||CURRENT_SESSION_DATA.pgName||'PG',
     pgName:CURRENT_SESSION_DATA.pgName||CURRENT_SESSION_DATA.initialPgName||'PG',
@@ -1634,10 +1636,10 @@ function loadSessionList(){
       var dt=formatTs(d.updatedAt);
       if(dt){var meta=document.createElement('div');meta.className='session-meta';meta.textContent='Aggiornato '+dt;left.appendChild(meta);}
       var owner=document.createElement('span');owner.className='session-owner'+(mine?' mine':'');
-      owner.textContent=mine?'Tuo Crimine':(narr?'Gestibile dal Narratore':'Altro giocatore');
+      owner.textContent=mine?'Tuo Crimine · condiviso':'Crimine condiviso';
       left.appendChild(owner);
       var btn=document.createElement('button');btn.className=mine||narr?'btn':'btn';btn.type='button';btn.setAttribute('data-session-control','1');
-      btn.textContent=mine||narr?'Riprendi':'Visualizza';
+      btn.textContent='Riprendi';
       btn.addEventListener(EVT,function(){navigateToSession(r.id);});
       row.appendChild(left);row.appendChild(btn);box.appendChild(row);host.appendChild(box);
     });
@@ -1656,7 +1658,7 @@ function createSession(){
   if(!name){setStatus('session-home-msg','Inserisci prima il nome del PG principale.','bad');if(inp)inp.focus();return;}
   if(!FB.user){setStatus('session-home-msg','Firebase non è ancora pronto. Riprova tra un momento.','bad');return;}
   setCreatingSession(true);setStatus('session-home-msg','Creazione del Crimine…','');
-  var data={ownerUid:FB.user.uid,initialPgName:name,pgName:name,tipoCrimine:'',crimeKey:'',createdAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),toolVersion:'v35',toolState:{assignedCrime:null,pgCount:{furto:2,contrabbando:2,pressione:2,sicario:2,affari:2},activeCrime:'',values:{}}};
+  var data={publicSession:true,ownerUid:FB.user.uid,initialPgName:name,pgName:name,tipoCrimine:'',crimeKey:'',createdAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),toolVersion:'v35',toolState:{assignedCrime:null,pgCount:{furto:2,contrabbando:2,pressione:2,sicario:2,affari:2},activeCrime:'',values:{}}};
   FB.db.collection(SESSION_COLLECTION).add(data).then(function(ref){
     setCreatingSession(false);if(inp)inp.value='';
     var localData={};Object.keys(data).forEach(function(k){localData[k]=data[k];});
